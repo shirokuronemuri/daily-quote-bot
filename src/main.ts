@@ -5,4 +5,5 @@ const bot = new Bot(config.botToken);
 
 bot.command('start', (ctx) => ctx.reply('hello, oniichan!'));
 
+console.log('The bot is running!');
 bot.start();
