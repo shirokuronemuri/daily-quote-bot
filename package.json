@@ -1,0 +1,31 @@
+{
+  "name": "daily-quote-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsc-watch --project tsconfig.build.json --onSuccess 'node dist/main.js'",
+    "prod:build": "rm -rf dist && tsc --project tsconfig.build.json",
+    "prod:start": "pm2 restart daily-quote-bot || pm2 start dist/main.js --name daily-quote-bot",
+    "prod:stop": "pm2 stop daily-quote-bot"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.26.2",
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^22.19.7",
+    "dotenv": "^17.2.3",
+    "eslint": "^9.39.2",
+    "globals": "^17.1.0",
+    "prettier": "^3.8.1",
+    "tsc-watch": "^7.2.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.1"
+  },
+  "dependencies": {
+    "grammy": "^1.39.3",
+    "zod": "^4.3.6"
+  }
+}
