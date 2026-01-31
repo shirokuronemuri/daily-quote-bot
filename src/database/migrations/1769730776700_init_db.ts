@@ -1,15 +1,61 @@
-import type { Kysely } from 'kysely'
+import { sql, type Kysely } from 'kysely';
 
-// `any` is required here since migrations should be frozen in time. alternatively, keep a "snapshot" db interface.
 export async function up(db: Kysely<any>): Promise<void> {
-	// up migration code goes here...
-	// note: up migrations are mandatory. you must implement this function.
-	// For more info, see: https://kysely.dev/docs/migrations
+  await db.schema
+    .createTable('chats')
+    .addColumn('id', 'integer', (col) => col.primaryKey())
+    .addColumn('created_at', 'text', (col) =>
+      col.notNull().defaultTo(sql`(datetime('now'))`),
+    )
+    .addColumn('updated_at', 'text', (col) =>
+      col.notNull().defaultTo(sql`(datetime('now'))`),
+    )
+    .execute();
+
+  await db.schema
+    .createTable('quotes')
+    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('chat_id', 'integer', (col) => col.notNull())
+    .addColumn('quote_text', 'text', (col) => col.notNull())
+    .addColumn('source', 'text', (col) => col.notNull())
+    .addColumn('created_at', 'text', (col) =>
+      col.notNull().defaultTo(sql`(datetime('now'))`),
+    )
+    .addColumn('updated_at', 'text', (col) =>
+      col.notNull().defaultTo(sql`(datetime('now'))`),
+    )
+    .execute();
+
+  await db.schema
+    .createTable('custom_messages')
+    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('chat_id', 'integer', (col) => col.notNull())
+    .addColumn('custom_message', 'text', (col) => col.notNull())
+    .addColumn('created_at', 'text', (col) =>
+      col.notNull().defaultTo(sql`(datetime('now'))`),
+    )
+    .addColumn('updated_at', 'text', (col) =>
+      col.notNull().defaultTo(sql`(datetime('now'))`),
+    )
+    .execute();
+
+  await db.schema
+    .createTable('session')
+    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('key', 'text', (col) => col.notNull())
+    .addColumn('value', 'text', (col) => col.notNull())
+    .addColumn('created_at', 'text', (col) =>
+      col.notNull().defaultTo(sql`(datetime('now'))`),
+    )
+    .addColumn('updated_at', 'text', (col) =>
+      col.notNull().defaultTo(sql`(datetime('now'))`),
+    )
+    .execute();
 }
 
-// `any` is required here since migrations should be frozen in time. alternatively, keep a "snapshot" db interface.
 export async function down(db: Kysely<any>): Promise<void> {
-	// down migration code goes here...
-	// note: down migrations are optional. you can safely delete this function.
-	// For more info, see: https://kysely.dev/docs/migrations
+  await db.schema.dropTable('chats').execute();
+  await db.schema.dropTable('quotes').execute();
+  await db.schema.dropTable('custom_messages').execute();
+  await db.schema.dropTable('session').execute();
 }
