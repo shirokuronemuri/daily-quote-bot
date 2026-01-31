@@ -23,7 +23,7 @@ export default defineConfig(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-unsafe-argument': 'warn',
-      '@typescript-eslint/no-unused-wars': 'warn',
+      '@typescript-eslint/no-unused-vars': 'warn',
     },
   },
 );
