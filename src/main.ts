@@ -7,11 +7,13 @@ import {
   conversations,
   createConversation,
 } from '@grammyjs/conversations';
+import { initDailyQuoteCron } from './daily-quote';
 
 const bootstrap = async () => {
   const db = getDb();
 
   const bot = new Bot<ConversationFlavor<Context>>(config.botToken);
+  initDailyQuoteCron(bot);
 
   bot.use(conversations());
 
