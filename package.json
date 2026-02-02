@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsc-watch --project tsconfig.build.json --onSuccess 'node dist/main.js'",
-    "prod:deploy": "pnpm prod:stop || true && pnpm prod:build && NODE_ENV=production pm2 start dist/main.js --name daily-quote-bot",
+    "prod:deploy": "pnpm prod:stop || true && pnpm migrate:prod &&  pnpm prod:build && NODE_ENV=production pm2 start dist/main.js --name daily-quote-bot",
     "prod:build": "rm -rf dist && tsc --project tsconfig.build.json",
     "prod:stop": "pm2 stop daily-quote-bot",
     "migrate:make": "kysely migrate:make",
