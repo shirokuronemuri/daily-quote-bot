@@ -9,7 +9,7 @@ import {
 export interface Database {
   chats: ChatTable;
   quotes: QuoteTable;
-  custom_messages: CustomMessageTable;
+  customMessages: CustomMessageTable;
   session: SessionTable;
 }
 
@@ -18,8 +18,8 @@ export type UpdatedAt = ColumnType<Date, string | undefined, string>;
 
 export interface ChatTable {
   id: number;
-  created_at: CreatedAt;
-  updated_at: UpdatedAt;
+  createdAt: CreatedAt;
+  updatedAt: UpdatedAt;
 }
 export type Chat = Selectable<ChatTable>;
 export type NewChat = Insertable<ChatTable>;
@@ -27,11 +27,11 @@ export type ChatUpdate = Updateable<ChatTable>;
 
 export interface QuoteTable {
   id: Generated<number>;
-  chat_id: number;
-  quote_text: string;
+  chatId: number;
+  quoteText: string;
   source: string;
-  created_at: CreatedAt;
-  updated_at: UpdatedAt;
+  createdAt: CreatedAt;
+  updatedAt: UpdatedAt;
 }
 export type Quote = Selectable<QuoteTable>;
 export type NewQuote = Insertable<QuoteTable>;
@@ -39,10 +39,10 @@ export type QuoteUpdate = Updateable<QuoteTable>;
 
 export interface CustomMessageTable {
   id: Generated<number>;
-  chat_id: number;
-  custom_message: string;
-  created_at: CreatedAt;
-  updated_at: UpdatedAt;
+  chatId: number;
+  customMessage: string;
+  createdAt: CreatedAt;
+  updatedAt: UpdatedAt;
 }
 export type CustomMessage = Selectable<CustomMessageTable>;
 export type NewCustomMessage = Insertable<CustomMessageTable>;
@@ -52,8 +52,8 @@ export interface SessionTable {
   id: Generated<number>;
   key: string;
   value: string;
-  created_at: CreatedAt;
-  updated_at: UpdatedAt;
+  createdAt: CreatedAt;
+  updatedAt: UpdatedAt;
 }
 export type Session = Selectable<SessionTable>;
 export type NewSession = Insertable<SessionTable>;

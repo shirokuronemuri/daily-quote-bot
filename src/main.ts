@@ -33,9 +33,9 @@ const bootstrap = () => {
       db
         .insertInto('quotes')
         .values({
-          quote_text: quoteCtx.msg.text,
+          quoteText: quoteCtx.msg.text,
           source: sourceCtx.msg.text,
-          chat_id: chatId,
+          chatId,
         })
         .execute(),
     );
@@ -64,7 +64,7 @@ const bootstrap = () => {
   bot.use(createConversation(testConversation));
 
   bot.command('start', (ctx) => ctx.reply('hello, oniichan!'));
-  bot.command('create_quote', async (ctx) => {
+  bot.command('add_quote', async (ctx) => {
     await ctx.conversation.enter('addQuote');
   });
   bot.command('test', async (ctx) => {

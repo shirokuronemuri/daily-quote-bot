@@ -4,10 +4,10 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable('chats')
     .addColumn('id', 'integer', (col) => col.primaryKey())
-    .addColumn('created_at', 'text', (col) =>
+    .addColumn('createdAt', 'text', (col) =>
       col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
     )
-    .addColumn('updated_at', 'text', (col) =>
+    .addColumn('updatedAt', 'text', (col) =>
       col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
     )
     .execute();
@@ -15,30 +15,30 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable('quotes')
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-    .addColumn('chat_id', 'integer', (col) =>
+    .addColumn('chatId', 'integer', (col) =>
       col.notNull().references('chats.id').onDelete('cascade'),
     )
-    .addColumn('quote_text', 'text', (col) => col.notNull())
+    .addColumn('quoteText', 'text', (col) => col.notNull())
     .addColumn('source', 'text', (col) => col.notNull())
-    .addColumn('created_at', 'text', (col) =>
+    .addColumn('createdAt', 'text', (col) =>
       col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
     )
-    .addColumn('updated_at', 'text', (col) =>
+    .addColumn('updatedAt', 'text', (col) =>
       col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
     )
     .execute();
 
   await db.schema
-    .createTable('custom_messages')
+    .createTable('customMessages')
     .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-    .addColumn('chat_id', 'integer', (col) =>
+    .addColumn('chatId', 'integer', (col) =>
       col.notNull().references('chats.id').onDelete('cascade'),
     )
-    .addColumn('custom_message', 'text', (col) => col.notNull())
-    .addColumn('created_at', 'text', (col) =>
+    .addColumn('customMessage', 'text', (col) => col.notNull())
+    .addColumn('createdAt', 'text', (col) =>
       col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
     )
-    .addColumn('updated_at', 'text', (col) =>
+    .addColumn('updatedAt', 'text', (col) =>
       col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
     )
     .execute();
@@ -54,6 +54,6 @@ export async function up(db: Kysely<any>): Promise<void> {
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('chats').execute();
   await db.schema.dropTable('quotes').execute();
-  await db.schema.dropTable('custom_messages').execute();
+  await db.schema.dropTable('customMessages').execute();
   await db.schema.dropTable('session').execute();
 }
