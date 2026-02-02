@@ -17,19 +17,30 @@ const bootstrap = () => {
 
   const addQuote = async (conversation: Conversation, ctx: Context) => {
     await ctx.reply('Enter new quote:');
-    ctx = await conversation.wait();
-    if (ctx.message?.text?.startsWith('/')) {
-      return await conversation.halt({ next: true });
-    }
-    const quote = ctx.message?.text;
+    const quoteCtx = await waitText(conversation);
+    await quoteCtx.reply('Enter the quote source:');
+    const sourceCtx = await waitText(conversation);
 
-    await ctx.reply('Enter the quote source:');
-    ctx = await conversation.wait();
-    if (ctx.message?.text?.startsWith('/')) {
-      return await conversation.halt({ next: true });
-    }
-    const source = ctx.message?.text;
-    await ctx.reply(`Your new quote:\n ${quote}\n\nSource: ${source}`);
+    const chatId = sourceCtx.chat.id;
+    await conversation.external(() =>
+      db
+        .insertInto('chats')
+        .values({ id: chatId })
+        .onConflict((oc) => oc.column('id').doNothing())
+        .execute(),
+    );
+    await conversation.external(() =>
+      db
+        .insertInto('quotes')
+        .values({
+          quote_text: quoteCtx.msg.text,
+          source: sourceCtx.msg.text,
+          chat_id: chatId,
+        })
+        .execute(),
+    );
+
+    await ctx.reply("I've written down your quote!");
   };
   bot.use(createConversation(addQuote));
 

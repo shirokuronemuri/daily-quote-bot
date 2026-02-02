@@ -18,8 +18,8 @@ importers:
         specifier: ^1.39.3
         version: 1.39.3
       kysely:
-        specifier: ^0.28.10
-        version: 0.28.10
+        specifier: ^0.28.11
+        version: 0.28.11
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -47,7 +47,7 @@ importers:
         version: 2.6.1
       kysely-ctl:
         specifier: ^0.20.0
-        version: 0.20.0(kysely@0.28.10)(typescript@5.9.3)
+        version: 0.20.0(kysely@0.28.11)(typescript@5.9.3)
       prettier:
         specifier: ^3.8.1
         version: 3.8.1
@@ -538,8 +538,8 @@ packages:
       kysely-prisma-postgres:
         optional: true
 
-  kysely@0.28.10:
-    resolution: {integrity: sha512-ksNxfzIW77OcZ+QWSAPC7yDqUSaIVwkTWnTPNiIy//vifNbwsSgQ57OkkncHxxpcBHM3LRfLAZVEh7kjq5twVA==}
+  kysely@0.28.11:
+    resolution: {integrity: sha512-zpGIFg0HuoC893rIjYX1BETkVWdDnzTzF5e0kWXJFg5lE0k1/LfNWBejrcnOFu8Q2Rfq/hTDTU7XLUM8QOrpzg==}
     engines: {node: '>=20.0.0'}
 
   levn@0.4.1:
@@ -1342,14 +1342,14 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  kysely-ctl@0.20.0(kysely@0.28.10)(typescript@5.9.3):
+  kysely-ctl@0.20.0(kysely@0.28.11)(typescript@5.9.3):
     dependencies:
       c12: 3.3.3
       citty: 0.1.6
       confbox: 0.2.2
       consola: 3.4.2
       jiti: 2.6.1
-      kysely: 0.28.10
+      kysely: 0.28.11
       nypm: 0.6.4
       ofetch: 1.5.1
       pathe: 2.0.3
@@ -1360,7 +1360,7 @@ snapshots:
       - magicast
       - typescript
 
-  kysely@0.28.10: {}
+  kysely@0.28.11: {}
 
   levn@0.4.1:
     dependencies:

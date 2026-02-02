@@ -34,7 +34,7 @@
     "@grammyjs/conversations": "^2.1.1",
     "better-sqlite3": "^12.6.2",
     "grammy": "^1.39.3",
-    "kysely": "^0.28.10",
+    "kysely": "^0.28.11",
     "zod": "^4.3.6"
   }
 }

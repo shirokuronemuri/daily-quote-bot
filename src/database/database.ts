@@ -7,8 +7,14 @@ let db: Kysely<Database> | undefined;
 
 export const getDb = () => {
   if (!db) {
+    const nativeDb = new SQLite(config.dbPath);
+    nativeDb.pragma('journal_mode = WAL');
+    nativeDb.pragma('synchronous = NORMAL');
+    nativeDb.pragma('foreign_keys = ON');
+    nativeDb.pragma('busy_timeout = 5000');
+
     const dialect = new SqliteDialect({
-      database: new SQLite(config.dbPath),
+      database: nativeDb,
     });
 
     db = new Kysely<Database>({
