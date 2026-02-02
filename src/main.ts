@@ -8,12 +8,18 @@ import {
   createConversation,
 } from '@grammyjs/conversations';
 
-const bootstrap = () => {
+const bootstrap = async () => {
   const db = getDb();
 
   const bot = new Bot<ConversationFlavor<Context>>(config.botToken);
 
   bot.use(conversations());
+
+  await bot.api.setMyCommands([
+    { command: 'start', description: 'Start the bot' },
+    { command: 'add_quote', description: 'Add new quote' },
+    { command: 'test', description: 'test conversation' },
+  ]);
 
   const addQuote = async (conversation: Conversation, ctx: Context) => {
     await ctx.reply('Enter new quote:');
