@@ -33,8 +33,6 @@ const sendDailyQuote = async (bot: Bot<ConversationFlavor<Context>>) => {
     )
     .execute();
 
-  console.log(randomQuotes);
-
   for (const quote of randomQuotes) {
     const message = `Good morning, oniichan! Here's your daily quote:\n\n${quote.quoteText}\n\nー ${quote.source}`;
     await bot.api.sendMessage(quote.chatId, message);
