@@ -6,7 +6,12 @@ import { MyContext } from './types';
 import { addQuote, addQuoteModule } from './commands/add-quote';
 import { testConversation, testModule } from './commands/test';
 import { startModule } from './commands/start';
-import { manageQuotesModule, quotesMenu } from './commands/manage-quotes';
+import {
+  editQuote,
+  manageQuotesModule,
+  quoteDetailsMenu,
+  quotesMenu,
+} from './commands/manage-quotes';
 
 const bootstrap = async () => {
   const bot = new Bot<MyContext>(config.botToken);
@@ -22,8 +27,13 @@ const bootstrap = async () => {
       }),
     }),
   );
-  bot.use(quotesMenu);
   bot.use(conversations());
+  bot.use(createConversation(addQuote));
+  bot.use(createConversation(editQuote));
+  bot.use(createConversation(testConversation));
+
+  bot.use(quotesMenu);
+  bot.use(quoteDetailsMenu);
 
   await bot.api.setMyCommands([
     { command: 'start', description: 'Start the bot' },
@@ -34,9 +44,6 @@ const bootstrap = async () => {
       description: 'View, edit or delete your quotes',
     },
   ]);
-
-  bot.use(createConversation(addQuote));
-  bot.use(createConversation(testConversation));
 
   bot.use(startModule);
   bot.use(addQuoteModule);

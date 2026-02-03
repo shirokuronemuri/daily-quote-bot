@@ -1,13 +1,13 @@
-import { Conversation } from '@grammyjs/conversations';
-import { waitText } from './helpers/wait-text';
-import { ConversationContext, MyContext } from '../types';
-import { getDb } from '../database/database';
 import { Composer } from 'grammy';
+import { MyContext } from 'src/types';
+import { getDb } from '../database/database';
+import { ConversationContext, MyConversation } from '../types';
+import { waitText } from './helpers/wait-text';
 
 export const addQuoteModule = new Composer<MyContext>();
 
 export const addQuote = async (
-  conversation: Conversation,
+  conversation: MyConversation,
   ctx: ConversationContext,
 ) => {
   const db = getDb();
@@ -35,9 +35,18 @@ export const addQuote = async (
       .execute(),
   );
 
+  await conversation.external((ctx) => ctx.session.quoteCount++);
   await ctx.reply("I've written down your quote!");
 };
 
 addQuoteModule.command('add_quote', async (ctx) => {
+  const lastQuoteMenu = ctx.session.lastQuoteMenuMessageId;
+  if (lastQuoteMenu) {
+    try {
+      await ctx.api.deleteMessage(ctx.chat.id, lastQuoteMenu);
+    } catch {
+      ctx.session.lastQuoteMenuMessageId = null;
+    }
+  }
   await ctx.conversation.enter('addQuote');
 });

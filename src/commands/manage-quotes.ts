@@ -2,6 +2,10 @@ import { Menu } from '@grammyjs/menu';
 import { Composer } from 'grammy';
 import { getDb } from '../database/database';
 import { MyContext } from '../types';
+import { ConversationContext, MyConversation } from '../types';
+import { waitText } from './helpers/wait-text';
+
+// todo: handle outdated and forwarded menus
 
 export const manageQuotesModule = new Composer<MyContext>();
 
@@ -29,7 +33,7 @@ const getQuoteText = async (chatId: number, page: number) => {
     return 'No quotes found  >.<';
   } else {
     return (
-      'Your quotes:\n\n' +
+      'Select quote you want to manage:\n\n' +
       quotes
         .map((q, i) => `${offset + i + 1}. ${q.quoteText} (${q.source})`)
         .join('\n\n')
@@ -51,10 +55,36 @@ const getQuoteCount = async (ctx: MyContext) => {
   return result?.count ?? 0;
 };
 
-export const quotesMenu = new Menu<MyContext>('manage_quotes')
+export const editQuote = async (
+  conversation: MyConversation,
+  ctx: ConversationContext,
+) => {
+  const db = getDb();
+  await ctx.reply('Enter updated quote:');
+  const quoteCtx = await waitText(conversation);
+  await quoteCtx.reply('Enter the quote source:');
+  const sourceCtx = await waitText(conversation);
+
+  const quoteId = await conversation.external(
+    (ctx) => ctx.session.selectedQuoteId,
+  );
+  await conversation.external(() =>
+    db
+      .updateTable('quotes')
+      .set({
+        quoteText: quoteCtx.msg.text,
+        source: sourceCtx.msg.text,
+      })
+      .where('id', '=', quoteId)
+      .execute(),
+  );
+
+  await ctx.reply("I've updated your quote!");
+};
+
+export const quotesMenu = new Menu<MyContext>('quotesMenu')
   .text('◀ prev', async (ctx) => {
     if (!ctx.chat) throw new Error('Missing chat in menu context');
-    ctx.session.quoteCount = await getQuoteCount(ctx);
     if (ctx.session.quotePage > 0) {
       ctx.session.quotePage--;
       const newText = await getQuoteText(ctx.chat.id, ctx.session.quotePage);
@@ -67,38 +97,88 @@ export const quotesMenu = new Menu<MyContext>('manage_quotes')
     (ctx) => `Page ${ctx.session.quotePage + 1}`,
     (ctx) => ctx.answerCallbackQuery(),
   )
-  .text('▶ next', async (ctx) => {
+  .text('next ▶', async (ctx) => {
     if (!ctx.chat) throw new Error('Missing chat in menu context');
-    ctx.session.quoteCount = await getQuoteCount(ctx);
     const totalPages = Math.ceil(ctx.session.quoteCount / pageSize);
     if (ctx.session.quotePage < totalPages - 1) {
-      console.log('here');
       ctx.session.quotePage++;
       const newText = await getQuoteText(ctx.chat.id, ctx.session.quotePage);
       await ctx.editMessageText(newText);
     } else {
-      console.log('max');
       await ctx.answerCallbackQuery('You are on the last page!');
-      // todo debug this thing it doesn't update buttons and one page is abundant
-      // todo and also delete old menu when creating new one
     }
   })
   .row()
   .dynamic(async (ctx, range) => {
     if (!ctx.chat) throw new Error('Missing chat in menu context');
+    const offset = ctx.session.quotePage * pageSize;
     const quotes = await getQuotes(ctx.chat.id, ctx.session.quotePage);
     for (const [index, quote] of quotes.entries()) {
-      range.text(`#${index + 1}`, (ctx) => {
+      range.text(`#${offset + index + 1}`, async (ctx) => {
         ctx.session.selectedQuoteId = quote.id;
-        // await ctx.menu.nav
+        const detailsText = `Selected quote #${offset + index + 1}:\n\nContents:\n${quote.quoteText}\n\nSource:\n${quote.source}\n\nSelect action below:`;
+        await ctx.editMessageText(detailsText);
+        await ctx.menu.nav('quoteDetailsMenu', { immediate: true });
       });
+
+      if (index + 1 === Math.ceil(quotes.length / 2)) {
+        range.row();
+      }
     }
   });
 
+export const quoteDetailsMenu = new Menu<MyContext>('quoteDetailsMenu')
+  .text('↩ back to list', async (ctx) => {
+    if (!ctx.chat) throw new Error('Missing chat in menu context');
+    const newText = await getQuoteText(ctx.chat.id, ctx.session.quotePage);
+    await ctx.editMessageText(newText);
+    await ctx.menu.nav('quotesMenu', { immediate: true });
+  })
+  .row()
+  .text('✏️ edit', async (ctx) => {
+    if (ctx.session.lastQuoteMenuMessageId === ctx.msgId) {
+      try {
+        await ctx.deleteMessage();
+      } catch {
+        ctx.session.lastQuoteMenuMessageId = null;
+      }
+    }
+    await ctx.conversation.enter('editQuote');
+  })
+  .row()
+  .text('🗑 delete', async (ctx) => {
+    const db = getDb();
+    const quoteId = ctx.session.selectedQuoteId;
+    if (!quoteId) return;
+    await db.deleteFrom('quotes').where('id', '=', quoteId).execute();
+    ctx.session.quoteCount--;
+    if (ctx.session.quotePage > 0 && ctx.session.quoteCount % pageSize === 0) {
+      ctx.session.quotePage--;
+    }
+    if (!ctx.chat) throw new Error('Missing chat in menu context');
+    const newText = await getQuoteText(ctx.chat.id, ctx.session.quotePage);
+    await ctx.editMessageText(newText);
+    await ctx.menu.nav('quotesMenu', { immediate: true });
+    await ctx.answerCallbackQuery('Quote deleted from list!');
+  });
+
+quotesMenu.register(quoteDetailsMenu);
+
 manageQuotesModule.command('manage_quotes', async (ctx) => {
   ctx.session.quotePage = 0;
+  const lastQuoteMenu = ctx.session.lastQuoteMenuMessageId;
+  if (lastQuoteMenu) {
+    try {
+      await ctx.api.deleteMessage(ctx.chat.id, lastQuoteMenu);
+    } catch {
+      ctx.session.lastQuoteMenuMessageId = null;
+    }
+  }
   const quotes = await getQuoteText(ctx.chat.id, ctx.session.quotePage);
-  ctx.session.quoteCount = await getQuoteCount(ctx);
-  console.log(ctx.session.quoteCount);
-  await ctx.reply(quotes, { reply_markup: quotesMenu });
+  const quoteCount = await getQuoteCount(ctx);
+  ctx.session.quoteCount = quoteCount;
+  const quotesMessage = await ctx.reply(quotes, {
+    ...(quoteCount > 0 ? { reply_markup: quotesMenu } : {}),
+  });
+  ctx.session.lastQuoteMenuMessageId = quotesMessage.message_id;
 });
