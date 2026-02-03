@@ -2,7 +2,10 @@ import { Conversation, ConversationFlavor } from '@grammyjs/conversations';
 import { Context, SessionFlavor } from 'grammy';
 
 export type SessionData = {
-  a: string;
+  quotePage: number;
+  quoteCount: number;
+  selectedQuoteId: number | null;
+  lastQuoteMenuMessageId: number | null;
 };
 
 export type MyContext = ConversationFlavor<

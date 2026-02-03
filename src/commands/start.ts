@@ -1,5 +1,5 @@
 import { Composer } from 'grammy';
-import { MyContext } from 'src/types';
+import { MyContext } from '../types';
 
 export const startModule = new Composer<MyContext>();
 

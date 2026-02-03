@@ -1,7 +1,7 @@
 import { Conversation } from '@grammyjs/conversations';
 import { waitText } from './helpers/wait-text';
-import { ConversationContext, MyContext } from 'src/types';
-import { getDb } from 'src/database/database';
+import { ConversationContext, MyContext } from '../types';
+import { getDb } from '../database/database';
 import { Composer } from 'grammy';
 
 export const addQuoteModule = new Composer<MyContext>();

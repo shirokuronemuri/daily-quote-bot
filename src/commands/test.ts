@@ -1,4 +1,4 @@
-import { ConversationContext, MyContext, MyConversation } from 'src/types';
+import { ConversationContext, MyContext, MyConversation } from '../types';
 import { waitText } from './helpers/wait-text';
 import { Composer } from 'grammy';
 
