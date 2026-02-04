@@ -38,7 +38,7 @@ export const addQuote = async (
       .execute(),
   );
 
-  await conversation.external((ctx) => ctx.session.quoteCount++);
+  await conversation.external((ctx) => ctx.session.quotes.totalCount++);
   await ctx.reply("I've written down your quote!");
   await conversation.external((ctx) => {
     ctx.session.activeConversation = null;
@@ -46,12 +46,12 @@ export const addQuote = async (
 };
 
 addQuoteModule.command('add_quote', async (ctx) => {
-  const lastQuoteMenu = ctx.session.lastQuoteMenuMessageId;
+  const lastQuoteMenu = ctx.session.quotes.lastMenuMsgId;
   if (lastQuoteMenu) {
     try {
       await ctx.api.deleteMessage(ctx.chat.id, lastQuoteMenu);
     } catch {
-      ctx.session.lastQuoteMenuMessageId = null;
+      // proceed anyway
     }
   }
   await ctx.conversation.enter('addQuote');

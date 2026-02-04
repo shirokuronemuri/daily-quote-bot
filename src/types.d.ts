@@ -2,11 +2,20 @@ import { Conversation, ConversationFlavor } from '@grammyjs/conversations';
 import { Context, SessionFlavor } from 'grammy';
 
 export type SessionData = {
-  quotePage: number;
-  quoteCount: number;
-  selectedQuoteId: number | null;
-  lastQuoteMenuMessageId: number | null;
-  menuFingerprint: number;
+  quotes: {
+    page: number;
+    totalCount: number;
+    selectedId: number | null;
+    lastMenuMsgId: number | null;
+    menuFingerprint: number;
+  };
+  customMessages: {
+    page: number;
+    totalCount: number;
+    selectedId: number | null;
+    lastMenuMsgId: number | null;
+    menuFingerprint: number;
+  };
   activeConversation: string | null;
 };
 
