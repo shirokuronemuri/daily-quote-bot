@@ -33,8 +33,11 @@ const getQuoteText = async (chatId: number, page: number) => {
     return (
       'Select quote you want to manage:\n\n' +
       quotes
-        .map((q, i) => `${offset + i + 1}. ${q.quoteText} (${q.source})`)
-        .join('\n\n')
+        .map(
+          (q, i) =>
+            `${offset + i + 1}. <blockquote>${q.quoteText}\n\nー ${q.source}</blockquote>`,
+        )
+        .join('\n')
     );
   }
 };
@@ -111,7 +114,7 @@ export const quotesMenu = new Menu<MyContext>('quotesMenu', menuOptions)
     if (ctx.session.quotes.page > 0) {
       ctx.session.quotes.page--;
       const newText = await getQuoteText(ctx.chat.id, ctx.session.quotes.page);
-      await ctx.editMessageText(newText);
+      await ctx.editMessageText(newText, { parse_mode: 'HTML' });
     } else {
       await ctx.answerCallbackQuery('You are on the first page!');
     }
@@ -126,7 +129,7 @@ export const quotesMenu = new Menu<MyContext>('quotesMenu', menuOptions)
     if (ctx.session.quotes.page < totalPages - 1) {
       ctx.session.quotes.page++;
       const newText = await getQuoteText(ctx.chat.id, ctx.session.quotes.page);
-      await ctx.editMessageText(newText);
+      await ctx.editMessageText(newText, { parse_mode: 'HTML' });
     } else {
       await ctx.answerCallbackQuery('You are on the last page!');
     }
@@ -139,7 +142,7 @@ export const quotesMenu = new Menu<MyContext>('quotesMenu', menuOptions)
     for (const [index, quote] of quotes.entries()) {
       range.text(`#${offset + index + 1}`, async (ctx) => {
         ctx.session.quotes.selectedId = quote.id;
-        const detailsText = `Selected quote #${offset + index + 1}:\n\n<blockquote>${quote.quoteText}\n\nー \n${quote.source}</blockquote>\n\nSelect action below:`;
+        const detailsText = `Selected quote #${offset + index + 1}:\n\n<blockquote>${quote.quoteText}\n\nー ${quote.source}</blockquote>\n\nSelect action below:`;
         await ctx.editMessageText(detailsText, { parse_mode: 'HTML' });
         await ctx.menu.nav('quoteDetailsMenu', { immediate: true });
       });
@@ -157,7 +160,7 @@ export const quoteDetailsMenu = new Menu<MyContext>(
   .text('↩ back to list', async (ctx) => {
     if (!ctx.chat) throw new Error('Missing chat in menu context');
     const newText = await getQuoteText(ctx.chat.id, ctx.session.quotes.page);
-    await ctx.editMessageText(newText);
+    await ctx.editMessageText(newText, { parse_mode: 'HTML' });
     await ctx.menu.nav('quotesMenu', { immediate: true });
   })
   .row()
@@ -186,7 +189,7 @@ export const quoteDetailsMenu = new Menu<MyContext>(
       ctx.session.quotes.page--;
     }
     const newText = await getQuoteText(ctx.chat.id, ctx.session.quotes.page);
-    await ctx.editMessageText(newText);
+    await ctx.editMessageText(newText, { parse_mode: 'HTML' });
     await ctx.menu.nav('quotesMenu', { immediate: true });
     await ctx.answerCallbackQuery('Quote deleted from list!');
   });
@@ -208,6 +211,7 @@ manageQuotesModule.command('manage_quotes', async (ctx) => {
   const quoteCount = await getQuoteCount(ctx.chat.id);
   ctx.session.quotes.totalCount = quoteCount;
   const msg = await ctx.reply(quotes, {
+    parse_mode: 'HTML',
     ...(quoteCount > 0 ? { reply_markup: quotesMenu } : {}),
   });
   ctx.session.quotes.lastMenuMsgId = msg.message_id;

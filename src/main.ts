@@ -35,10 +35,6 @@ const bootstrap = async () => {
       description: 'View, edit or delete your quotes',
     },
     {
-      command: 'cancel',
-      description: 'Cancel creating/editing the quote',
-    },
-    {
       command: 'add_custom_message',
       description: 'Add custom message that is displayed before the quote',
     },
@@ -46,16 +42,30 @@ const bootstrap = async () => {
       command: 'manage_custom_messages',
       description: 'View, edit or delete your custom messages',
     },
+    {
+      command: 'cancel',
+      description: 'Cancel current add/edit operation',
+    },
   ]);
 
   bot.use(
     session({
       initial: () => ({
-        quotePage: 0,
-        quoteCount: 0,
-        selectedQuoteId: null,
-        lastQuoteMenuMessageId: null,
-        menuFingerprint: 0,
+        quotes: {
+          lastMenuMsgId: null,
+          selectedId: null,
+          menuFingerprint: 0,
+          page: 0,
+          totalCount: 0,
+        },
+        customMessages: {
+          lastMenuMsgId: null,
+          selectedId: null,
+          menuFingerprint: 0,
+          page: 0,
+          totalCount: 0,
+        },
+        activeConversation: null,
       }),
     }),
   );

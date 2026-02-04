@@ -33,7 +33,10 @@ const getCustomMessageText = async (chatId: number, page: number) => {
     return (
       'Select custom message that you want to manage:\n\n' +
       customMessages
-        .map((msg, i) => `${offset + i + 1}. ${msg.customMessage}`)
+        .map(
+          (msg, i) =>
+            `${offset + i + 1}. <blockquote>${msg.customMessage}</blockquote>`,
+        )
         .join('\n\n')
     );
   }
@@ -116,7 +119,7 @@ export const customMessagesMenu = new Menu<MyContext>(
         ctx.chat.id,
         ctx.session.customMessages.page,
       );
-      await ctx.editMessageText(newText);
+      await ctx.editMessageText(newText, { parse_mode: 'HTML' });
     } else {
       await ctx.answerCallbackQuery('You are on the first page!');
     }
@@ -136,7 +139,7 @@ export const customMessagesMenu = new Menu<MyContext>(
         ctx.chat.id,
         ctx.session.customMessages.page,
       );
-      await ctx.editMessageText(newText);
+      await ctx.editMessageText(newText, { parse_mode: 'HTML' });
     } else {
       await ctx.answerCallbackQuery('You are on the last page!');
     }
@@ -173,7 +176,7 @@ export const customMessageDetailsMenu = new Menu<MyContext>(
       ctx.chat.id,
       ctx.session.customMessages.page,
     );
-    await ctx.editMessageText(newText);
+    await ctx.editMessageText(newText, { parse_mode: 'HTML' });
     await ctx.menu.nav('customMessagesMenu', { immediate: true });
   })
   .row()
@@ -208,7 +211,7 @@ export const customMessageDetailsMenu = new Menu<MyContext>(
       ctx.chat.id,
       ctx.session.customMessages.page,
     );
-    await ctx.editMessageText(newText);
+    await ctx.editMessageText(newText, { parse_mode: 'HTML' });
     await ctx.menu.nav('customMessagesMenu', { immediate: true });
     await ctx.answerCallbackQuery('Custom message deleted from list!');
   });
@@ -233,6 +236,7 @@ manageCustomMessagesModule.command('manage_custom_messages', async (ctx) => {
   const customMessageCount = await getCustomMessageCount(ctx.chat.id);
   ctx.session.customMessages.totalCount = customMessageCount;
   const msg = await ctx.reply(customMessages, {
+    parse_mode: 'HTML',
     ...(customMessageCount > 0 ? { reply_markup: customMessagesMenu } : {}),
   });
   ctx.session.customMessages.lastMenuMsgId = msg.message_id;
