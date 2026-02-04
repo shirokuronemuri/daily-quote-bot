@@ -4,7 +4,6 @@ import { conversations, createConversation } from '@grammyjs/conversations';
 import { initDailyQuoteCron } from './daily-quote';
 import { MyContext } from './types';
 import { addQuote, addQuoteModule } from './commands/add-quote';
-import { testConversation, testModule } from './commands/test';
 import { startModule } from './commands/start';
 import {
   editQuote,
@@ -32,7 +31,6 @@ const bootstrap = async () => {
   bot.use(conversations());
   bot.use(createConversation(addQuote));
   bot.use(createConversation(editQuote));
-  bot.use(createConversation(testConversation));
 
   bot.use(quotesMenu);
   bot.use(quoteDetailsMenu);
@@ -40,7 +38,6 @@ const bootstrap = async () => {
   await bot.api.setMyCommands([
     { command: 'start', description: 'Start the bot' },
     { command: 'add_quote', description: 'Add new quote' },
-    { command: 'test', description: 'Test conversation' },
     {
       command: 'manage_quotes',
       description: 'View, edit or delete your quotes',
@@ -53,7 +50,6 @@ const bootstrap = async () => {
 
   bot.use(startModule);
   bot.use(addQuoteModule);
-  bot.use(testModule);
   bot.use(manageQuotesModule);
   bot.use(cancelModule);
 
