@@ -1,5 +1,10 @@
 import SQLite from 'better-sqlite3';
-import { CamelCasePlugin, Kysely, SqliteDialect } from 'kysely';
+import {
+  CamelCasePlugin,
+  Kysely,
+  ParseJSONResultsPlugin,
+  SqliteDialect,
+} from 'kysely';
 import { config } from '../config';
 import { Database } from './schema';
 
@@ -19,7 +24,7 @@ export const getDb = () => {
 
     db = new Kysely<Database>({
       dialect,
-      plugins: [new CamelCasePlugin()],
+      plugins: [new CamelCasePlugin(), new ParseJSONResultsPlugin()],
     });
   }
 
