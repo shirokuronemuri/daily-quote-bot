@@ -12,6 +12,7 @@ import {
   quoteDetailsMenu,
   quotesMenu,
 } from './commands/manage-quotes';
+import { cancelModule } from './commands/cancel';
 
 const bootstrap = async () => {
   const bot = new Bot<MyContext>(config.botToken);
@@ -39,10 +40,14 @@ const bootstrap = async () => {
   await bot.api.setMyCommands([
     { command: 'start', description: 'Start the bot' },
     { command: 'add_quote', description: 'Add new quote' },
-    { command: 'test', description: 'test conversation' },
+    { command: 'test', description: 'Test conversation' },
     {
       command: 'manage_quotes',
       description: 'View, edit or delete your quotes',
+    },
+    {
+      command: 'cancel',
+      description: 'Cancel creating/editing the quote',
     },
   ]);
 
@@ -50,6 +55,7 @@ const bootstrap = async () => {
   bot.use(addQuoteModule);
   bot.use(testModule);
   bot.use(manageQuotesModule);
+  bot.use(cancelModule);
 
   void bot.start({ onStart: () => console.log('The bot is running, nya!') });
 };

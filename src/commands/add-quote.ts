@@ -10,6 +10,9 @@ export const addQuote = async (
   conversation: MyConversation,
   ctx: ConversationContext,
 ) => {
+  await conversation.external((ctx) => {
+    ctx.session.activeConversation = 'add_quote';
+  });
   const db = getDb();
   await ctx.reply('Enter new quote:');
   const quoteCtx = await waitText(conversation);
@@ -37,6 +40,9 @@ export const addQuote = async (
 
   await conversation.external((ctx) => ctx.session.quoteCount++);
   await ctx.reply("I've written down your quote!");
+  await conversation.external((ctx) => {
+    ctx.session.activeConversation = null;
+  });
 };
 
 addQuoteModule.command('add_quote', async (ctx) => {
