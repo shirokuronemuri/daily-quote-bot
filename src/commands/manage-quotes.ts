@@ -1,11 +1,9 @@
-import { Menu } from '@grammyjs/menu';
+import { Menu, MenuOptions } from '@grammyjs/menu';
 import { Composer } from 'grammy';
 import { getDb } from '../database/database';
 import { MyContext } from '../types';
 import { ConversationContext, MyConversation } from '../types';
 import { waitText } from './helpers/wait-text';
-
-// todo: handle outdated and forwarded menus
 
 export const manageQuotesModule = new Composer<MyContext>();
 
@@ -82,7 +80,27 @@ export const editQuote = async (
   await ctx.reply("I've updated your quote!");
 };
 
-export const quotesMenu = new Menu<MyContext>('quotesMenu')
+const menuOptions: MenuOptions<MyContext> = {
+  fingerprint: (ctx) => {
+    // 48 hours
+    const menuTimeLimitMs = 1000 * 60 * 60 * 48;
+    const isTooOld = Date.now() - ctx.session.menuFingerprint > menuTimeLimitMs;
+    return isTooOld ? 'expired' : String(ctx.session.menuFingerprint);
+  },
+  onMenuOutdated: async (ctx) => {
+    try {
+      await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+    } catch {
+      // continue regardless
+    }
+    await ctx.answerCallbackQuery({
+      text: 'The menu is outdated, please use /manage_quotes again.',
+      show_alert: true,
+    });
+  },
+};
+
+export const quotesMenu = new Menu<MyContext>('quotesMenu', menuOptions)
   .text('◀ prev', async (ctx) => {
     if (!ctx.chat) throw new Error('Missing chat in menu context');
     if (ctx.session.quotePage > 0) {
@@ -127,7 +145,10 @@ export const quotesMenu = new Menu<MyContext>('quotesMenu')
     }
   });
 
-export const quoteDetailsMenu = new Menu<MyContext>('quoteDetailsMenu')
+export const quoteDetailsMenu = new Menu<MyContext>(
+  'quoteDetailsMenu',
+  menuOptions,
+)
   .text('↩ back to list', async (ctx) => {
     if (!ctx.chat) throw new Error('Missing chat in menu context');
     const newText = await getQuoteText(ctx.chat.id, ctx.session.quotePage);
@@ -165,20 +186,21 @@ export const quoteDetailsMenu = new Menu<MyContext>('quoteDetailsMenu')
 quotesMenu.register(quoteDetailsMenu);
 
 manageQuotesModule.command('manage_quotes', async (ctx) => {
-  ctx.session.quotePage = 0;
   const lastQuoteMenu = ctx.session.lastQuoteMenuMessageId;
   if (lastQuoteMenu) {
     try {
       await ctx.api.deleteMessage(ctx.chat.id, lastQuoteMenu);
     } catch {
-      ctx.session.lastQuoteMenuMessageId = null;
+      // continue regardless
     }
   }
+  ctx.session.menuFingerprint = Date.now();
+  ctx.session.quotePage = 0;
   const quotes = await getQuoteText(ctx.chat.id, ctx.session.quotePage);
   const quoteCount = await getQuoteCount(ctx);
   ctx.session.quoteCount = quoteCount;
-  const quotesMessage = await ctx.reply(quotes, {
+  const msg = await ctx.reply(quotes, {
     ...(quoteCount > 0 ? { reply_markup: quotesMenu } : {}),
   });
-  ctx.session.lastQuoteMenuMessageId = quotesMessage.message_id;
+  ctx.session.lastQuoteMenuMessageId = msg.message_id;
 });

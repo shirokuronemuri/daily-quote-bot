@@ -24,6 +24,7 @@ const bootstrap = async () => {
         quoteCount: 0,
         selectedQuoteId: null,
         lastQuoteMenuMessageId: null,
+        menuFingerprint: 0,
       }),
     }),
   );

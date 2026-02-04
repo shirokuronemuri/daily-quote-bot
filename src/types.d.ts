@@ -6,6 +6,7 @@ export type SessionData = {
   quoteCount: number;
   selectedQuoteId: number | null;
   lastQuoteMenuMessageId: number | null;
+  menuFingerprint: number;
 };
 
 export type MyContext = ConversationFlavor<
