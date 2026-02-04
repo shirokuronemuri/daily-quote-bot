@@ -40,7 +40,7 @@ export type QuoteUpdate = Updateable<QuoteTable>;
 export interface CustomMessageTable {
   id: Generated<number>;
   chatId: number;
-  customMessage: string;
+  text: string;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }

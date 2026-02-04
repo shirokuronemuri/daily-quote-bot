@@ -34,8 +34,7 @@ const getCustomMessageText = async (chatId: number, page: number) => {
       'Select custom message that you want to manage:\n\n' +
       customMessages
         .map(
-          (msg, i) =>
-            `${offset + i + 1}. <blockquote>${msg.customMessage}</blockquote>`,
+          (msg, i) => `${offset + i + 1}. <blockquote>${msg.text}</blockquote>`,
         )
         .join('\n\n')
     );
@@ -71,7 +70,7 @@ export const editCustomMessage = async (
     db
       .updateTable('customMessages')
       .set({
-        customMessage: customMessageCtx.msg.text,
+        text: customMessageCtx.msg.text,
       })
       .where('id', '=', customMessageId)
       .execute(),
@@ -155,7 +154,7 @@ export const customMessagesMenu = new Menu<MyContext>(
     for (const [index, msg] of customMessages.entries()) {
       range.text(`#${offset + index + 1}`, async (ctx) => {
         ctx.session.customMessages.selectedId = msg.id;
-        const detailsText = `Selected custom message #${offset + index + 1}:\n\n<blockquote>${msg.customMessage}</blockquote>\n\nSelect action below:`;
+        const detailsText = `Selected custom message #${offset + index + 1}:\n\n<blockquote>${msg.text}</blockquote>\n\nSelect action below:`;
         await ctx.editMessageText(detailsText, { parse_mode: 'HTML' });
         await ctx.menu.nav('customMessageDetailsMenu', { immediate: true });
       });

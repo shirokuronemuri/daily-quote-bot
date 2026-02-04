@@ -31,7 +31,7 @@ export const addCustomMessage = async (
     db
       .insertInto('customMessages')
       .values({
-        customMessage: customCtx.msg.text,
+        text: customCtx.msg.text,
         chatId,
       })
       .execute(),

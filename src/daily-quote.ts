@@ -8,7 +8,7 @@ import { jsonObjectFrom } from 'kysely/helpers/sqlite';
 export const initDailyQuoteCron = (bot: Bot<ConversationFlavor<Context>>) => {
   // todo: handle all timezones and custom times
   CronJob.from({
-    cronTime: '*/10 * * * * *',
+    cronTime: '0 10 * * *',
     onTick: async () => {
       await sendDailyQuote(bot);
     },
@@ -35,7 +35,7 @@ const sendDailyQuote = async (bot: Bot<ConversationFlavor<Context>>) => {
       (qb) =>
         qb
           .selectFrom('customMessages')
-          .select('customMessage')
+          .select('text')
           .whereRef('customMessages.chatId', '=', 'chats.id')
           .orderBy(sql`random()`)
           .limit(1)
