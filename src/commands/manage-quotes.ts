@@ -57,6 +57,9 @@ export const editQuote = async (
   conversation: MyConversation,
   ctx: ConversationContext,
 ) => {
+  await conversation.external((ctx) => {
+    ctx.session.activeConversation = 'manage_quotes';
+  });
   const db = getDb();
   await ctx.reply('Enter updated quote:');
   const quoteCtx = await waitText(conversation);
@@ -78,6 +81,10 @@ export const editQuote = async (
   );
 
   await ctx.reply("I've updated your quote!");
+
+  await conversation.external((ctx) => {
+    ctx.session.activeConversation = null;
+  });
 };
 
 const menuOptions: MenuOptions<MyContext> = {
