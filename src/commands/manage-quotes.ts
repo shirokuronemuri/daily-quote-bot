@@ -39,10 +39,7 @@ const getQuoteText = async (chatId: number, page: number) => {
   }
 };
 
-const getQuoteCount = async (ctx: MyContext) => {
-  const chatId = ctx.chat?.id;
-  if (!chatId) throw new Error('No chatId in getQuotes');
-
+const getQuoteCount = async (chatId: number) => {
   const db = getDb();
   const result = await db
     .selectFrom('quotes')
@@ -67,7 +64,7 @@ export const editQuote = async (
   const sourceCtx = await waitText(conversation);
 
   const quoteId = await conversation.external(
-    (ctx) => ctx.session.selectedQuoteId,
+    (ctx) => ctx.session.quotes.selectedId,
   );
   await conversation.external(() =>
     db
@@ -91,8 +88,9 @@ const menuOptions: MenuOptions<MyContext> = {
   fingerprint: (ctx) => {
     // 48 hours
     const menuTimeLimitMs = 1000 * 60 * 60 * 48;
-    const isTooOld = Date.now() - ctx.session.menuFingerprint > menuTimeLimitMs;
-    return isTooOld ? 'expired' : String(ctx.session.menuFingerprint);
+    const isTooOld =
+      Date.now() - ctx.session.quotes.menuFingerprint > menuTimeLimitMs;
+    return isTooOld ? 'expired' : String(ctx.session.quotes.menuFingerprint);
   },
   onMenuOutdated: async (ctx) => {
     try {
@@ -110,24 +108,24 @@ const menuOptions: MenuOptions<MyContext> = {
 export const quotesMenu = new Menu<MyContext>('quotesMenu', menuOptions)
   .text('◀ prev', async (ctx) => {
     if (!ctx.chat) throw new Error('Missing chat in menu context');
-    if (ctx.session.quotePage > 0) {
-      ctx.session.quotePage--;
-      const newText = await getQuoteText(ctx.chat.id, ctx.session.quotePage);
+    if (ctx.session.quotes.page > 0) {
+      ctx.session.quotes.page--;
+      const newText = await getQuoteText(ctx.chat.id, ctx.session.quotes.page);
       await ctx.editMessageText(newText);
     } else {
       await ctx.answerCallbackQuery('You are on the first page!');
     }
   })
   .text(
-    (ctx) => `Page ${ctx.session.quotePage + 1}`,
+    (ctx) => `Page ${ctx.session.quotes.page + 1}`,
     (ctx) => ctx.answerCallbackQuery(),
   )
   .text('next ▶', async (ctx) => {
     if (!ctx.chat) throw new Error('Missing chat in menu context');
-    const totalPages = Math.ceil(ctx.session.quoteCount / pageSize);
-    if (ctx.session.quotePage < totalPages - 1) {
-      ctx.session.quotePage++;
-      const newText = await getQuoteText(ctx.chat.id, ctx.session.quotePage);
+    const totalPages = Math.ceil(ctx.session.quotes.totalCount / pageSize);
+    if (ctx.session.quotes.page < totalPages - 1) {
+      ctx.session.quotes.page++;
+      const newText = await getQuoteText(ctx.chat.id, ctx.session.quotes.page);
       await ctx.editMessageText(newText);
     } else {
       await ctx.answerCallbackQuery('You are on the last page!');
@@ -136,13 +134,13 @@ export const quotesMenu = new Menu<MyContext>('quotesMenu', menuOptions)
   .row()
   .dynamic(async (ctx, range) => {
     if (!ctx.chat) throw new Error('Missing chat in menu context');
-    const offset = ctx.session.quotePage * pageSize;
-    const quotes = await getQuotes(ctx.chat.id, ctx.session.quotePage);
+    const offset = ctx.session.quotes.page * pageSize;
+    const quotes = await getQuotes(ctx.chat.id, ctx.session.quotes.page);
     for (const [index, quote] of quotes.entries()) {
       range.text(`#${offset + index + 1}`, async (ctx) => {
-        ctx.session.selectedQuoteId = quote.id;
-        const detailsText = `Selected quote #${offset + index + 1}:\n\nContents:\n${quote.quoteText}\n\nSource:\n${quote.source}\n\nSelect action below:`;
-        await ctx.editMessageText(detailsText);
+        ctx.session.quotes.selectedId = quote.id;
+        const detailsText = `Selected quote #${offset + index + 1}:\n\n<blockquote>${quote.quoteText}\n\nー \n${quote.source}</blockquote>\n\nSelect action below:`;
+        await ctx.editMessageText(detailsText, { parse_mode: 'HTML' });
         await ctx.menu.nav('quoteDetailsMenu', { immediate: true });
       });
 
@@ -158,33 +156,36 @@ export const quoteDetailsMenu = new Menu<MyContext>(
 )
   .text('↩ back to list', async (ctx) => {
     if (!ctx.chat) throw new Error('Missing chat in menu context');
-    const newText = await getQuoteText(ctx.chat.id, ctx.session.quotePage);
+    const newText = await getQuoteText(ctx.chat.id, ctx.session.quotes.page);
     await ctx.editMessageText(newText);
     await ctx.menu.nav('quotesMenu', { immediate: true });
   })
   .row()
   .text('✏️ edit', async (ctx) => {
-    if (ctx.session.lastQuoteMenuMessageId === ctx.msgId) {
+    if (ctx.session.quotes.lastMenuMsgId === ctx.msgId) {
       try {
         await ctx.deleteMessage();
       } catch {
-        ctx.session.lastQuoteMenuMessageId = null;
+        ctx.session.quotes.lastMenuMsgId = null;
       }
     }
     await ctx.conversation.enter('editQuote');
   })
   .row()
   .text('🗑 delete', async (ctx) => {
+    if (!ctx.chat) throw new Error('Missing chat in menu context');
     const db = getDb();
-    const quoteId = ctx.session.selectedQuoteId;
+    const quoteId = ctx.session.quotes.selectedId;
     if (!quoteId) return;
     await db.deleteFrom('quotes').where('id', '=', quoteId).execute();
-    ctx.session.quoteCount--;
-    if (ctx.session.quotePage > 0 && ctx.session.quoteCount % pageSize === 0) {
-      ctx.session.quotePage--;
+    ctx.session.quotes.totalCount--;
+    if (
+      ctx.session.quotes.page > 0 &&
+      ctx.session.quotes.totalCount % pageSize === 0
+    ) {
+      ctx.session.quotes.page--;
     }
-    if (!ctx.chat) throw new Error('Missing chat in menu context');
-    const newText = await getQuoteText(ctx.chat.id, ctx.session.quotePage);
+    const newText = await getQuoteText(ctx.chat.id, ctx.session.quotes.page);
     await ctx.editMessageText(newText);
     await ctx.menu.nav('quotesMenu', { immediate: true });
     await ctx.answerCallbackQuery('Quote deleted from list!');
@@ -193,7 +194,7 @@ export const quoteDetailsMenu = new Menu<MyContext>(
 quotesMenu.register(quoteDetailsMenu);
 
 manageQuotesModule.command('manage_quotes', async (ctx) => {
-  const lastQuoteMenu = ctx.session.lastQuoteMenuMessageId;
+  const lastQuoteMenu = ctx.session.quotes.lastMenuMsgId;
   if (lastQuoteMenu) {
     try {
       await ctx.api.deleteMessage(ctx.chat.id, lastQuoteMenu);
@@ -201,13 +202,13 @@ manageQuotesModule.command('manage_quotes', async (ctx) => {
       // continue regardless
     }
   }
-  ctx.session.menuFingerprint = Date.now();
-  ctx.session.quotePage = 0;
-  const quotes = await getQuoteText(ctx.chat.id, ctx.session.quotePage);
-  const quoteCount = await getQuoteCount(ctx);
-  ctx.session.quoteCount = quoteCount;
+  ctx.session.quotes.menuFingerprint = Date.now();
+  ctx.session.quotes.page = 0;
+  const quotes = await getQuoteText(ctx.chat.id, ctx.session.quotes.page);
+  const quoteCount = await getQuoteCount(ctx.chat.id);
+  ctx.session.quotes.totalCount = quoteCount;
   const msg = await ctx.reply(quotes, {
     ...(quoteCount > 0 ? { reply_markup: quotesMenu } : {}),
   });
-  ctx.session.lastQuoteMenuMessageId = msg.message_id;
+  ctx.session.quotes.lastMenuMsgId = msg.message_id;
 });
