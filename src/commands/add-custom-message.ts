@@ -37,6 +37,7 @@ export const addCustomMessage = async (
       .execute(),
   );
 
+  await ctx.reply("I've remembered your message!");
   await conversation.external((ctx) => {
     ctx.session.activeConversation = null;
   });
