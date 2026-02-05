@@ -1,12 +1,40 @@
-import { ConversationFlavor } from '@grammyjs/conversations';
 import { CronJob } from 'cron';
-import { Bot, Context } from 'grammy';
+import { Bot } from 'grammy';
 import { getDb } from './database/database';
 import { sql } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/sqlite';
+import { MyContext } from './types';
+import { DateTime } from 'luxon';
 
-export const initDailyQuoteCron = (bot: Bot<ConversationFlavor<Context>>) => {
-  // todo: handle all timezones and custom times
+const updateDailyOffsets = async () => {
+  const db = getDb();
+  const chats = await db
+    .selectFrom('chats')
+    .select(['id', 'ianaTimezone'])
+    .execute();
+  const updates = chats.map((chat) => {
+    const currentOffset = DateTime.now()
+      .setZone(chat.ianaTimezone)
+      .toFormat('ZZ');
+
+    return {
+      id: chat.id,
+      currentOffset,
+    };
+  });
+
+  await db.transaction().execute(async (trx) => {
+    for (const update of updates) {
+      await trx
+        .updateTable('chats')
+        .set({ dailyOffset: update.currentOffset })
+        .where('id', '=', update.id)
+        .execute();
+    }
+  });
+};
+
+export const initDailyQuoteCron = (bot: Bot<MyContext>) => {
   CronJob.from({
     cronTime: '0 10 * * *',
     onTick: async () => {
@@ -17,10 +45,33 @@ export const initDailyQuoteCron = (bot: Bot<ConversationFlavor<Context>>) => {
   });
 };
 
-const sendDailyQuote = async (bot: Bot<ConversationFlavor<Context>>) => {
+const sendDailyQuote = async (bot: Bot<MyContext>) => {
+  const now = DateTime.utc();
+  if (now.hour === 3 && now.minute === 0) {
+    console.log('Starting daily offsets update...');
+    await updateDailyOffsets();
+  }
+
   const db = getDb();
   const chats = await db
     .selectFrom('chats')
+    .where((eb) =>
+      eb.and([
+        eb(
+          sql`strftime('%H:%M', 'now', chats.currentOffset)`,
+          '=',
+          eb.ref('chats.sendTime'),
+        ),
+        eb.or([
+          eb('lastSentDate', 'is', null),
+          eb(
+            'lastSentDate',
+            '!=',
+            sql<string>`date('now', chats.currentOffset)`,
+          ),
+        ]),
+      ]),
+    )
     .select([
       'id',
       (qb) =>

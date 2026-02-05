@@ -22,6 +22,11 @@ import {
   editCustomMessage,
   manageCustomMessagesModule,
 } from './commands/manage-custom-messages';
+import {
+  initialTimezoneMenu,
+  settingsMenu,
+  settingsModule,
+} from './commands/settings';
 
 const bootstrap = async () => {
   const bot = new Bot<MyContext>(config.botToken);
@@ -65,6 +70,10 @@ const bootstrap = async () => {
           page: 0,
           totalCount: 0,
         },
+        settings: {
+          lastMenuMsgId: null,
+          menuFingerprint: 0,
+        },
         activeConversation: null,
       }),
     }),
@@ -79,6 +88,8 @@ const bootstrap = async () => {
   bot.use(quoteDetailsMenu);
   bot.use(customMessagesMenu);
   bot.use(customMessageDetailsMenu);
+  bot.use(settingsMenu);
+  bot.use(initialTimezoneMenu);
 
   bot.use(startModule);
   bot.use(addQuoteModule);
@@ -86,6 +97,7 @@ const bootstrap = async () => {
   bot.use(cancelModule);
   bot.use(addCustomMessageModule);
   bot.use(manageCustomMessagesModule);
+  bot.use(settingsModule);
 
   void bot.start({ onStart: () => console.log('The bot is running, wafu!') });
 };

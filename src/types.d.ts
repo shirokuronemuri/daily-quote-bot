@@ -16,6 +16,10 @@ export type SessionData = {
     lastMenuMsgId: number | null;
     menuFingerprint: number;
   };
+  settings: {
+    lastMenuMsgId: number | null;
+    menuFingerprint: number;
+  };
   activeConversation: string | null;
 };
 
