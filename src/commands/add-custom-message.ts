@@ -1,4 +1,4 @@
-import { MyContext } from 'src/types';
+import { MyContext } from '../types';
 import { getDb } from '../database/database';
 import { ConversationContext, MyConversation } from '../types';
 import { Composer } from 'grammy';

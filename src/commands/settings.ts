@@ -5,7 +5,7 @@ import { sql } from 'kysely';
 import { Composer, InlineKeyboard } from 'grammy';
 import tzlookup from 'tz-lookup';
 import { DateTime } from 'luxon';
-import { withUpdatedAt } from 'src/database/helpers/with-updated-at';
+import { withUpdatedAt } from '../database/helpers/with-updated-at';
 
 export const settingsModule = new Composer<MyContext>();
 
@@ -57,9 +57,23 @@ export const settingsMenu = new Menu<MyContext>('settingsMenu', menuOptions)
     },
   )
   .row()
-  .text('Timezone settings', async (ctx) => {
-    await ctx.conversation.enter('timezoneConversation');
-  });
+  .text(
+    async (ctx) => {
+      if (!ctx.chat) throw new Error('Missing chat in menu context');
+      const db = getDb();
+      const { ianaTimezone, dailyOffset } =
+        (await db
+          .selectFrom('chats')
+          .where('id', '=', ctx.chat.id)
+          .select(['ianaTimezone', 'dailyOffset'])
+          .executeTakeFirst()) ?? {};
+
+      return `Timezone: ${ianaTimezone} (${dailyOffset})`;
+    },
+    async (ctx) => {
+      await ctx.conversation.enter('timezoneConversation');
+    },
+  );
 
 export const timezoneConversation = async (
   conversation: MyConversation,
