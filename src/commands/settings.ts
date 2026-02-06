@@ -179,7 +179,7 @@ export const timezoneConversation = async (
   if (filteredCtx.callbackQuery?.data === 'tz_manual') {
     const manualSearchCheckpoint = conversation.checkpoint();
     await filteredCtx.reply(
-      'Type the name of your timezone city or its part to apply search: (example: <code>Kyiv</code>, <code>tokyo</code>; <code>new_</code> minimum 3 characters long)',
+      'Type the name of your timezone city or its part to apply search: (example: <code>Kyiv</code>; <code>tokyo</code>; <code>new_york</code>; minimum 3 characters long)',
       { parse_mode: 'HTML' },
     );
     const searchTermCtx = await conversation
@@ -265,11 +265,23 @@ export const timezoneConversation = async (
               : false,
           {
             otherwise: async (ctx) => {
-              if (ctx.message?.text?.startsWith('/')) {
-                await conversation.halt({ next: true });
-              }
-              if (ctx.callbackQuery) {
-                await ctx.reply('Current operation cancelled.');
+              if (ctx.message?.text?.startsWith('/') || ctx.callbackQuery) {
+                await conversation.external(async (ctx) => {
+                  try {
+                    await ctx.api.editMessageReplyMarkup(
+                      chatId,
+                      searchResultsMsg.message_id,
+                      {
+                        reply_markup: undefined,
+                      },
+                    );
+                  } catch {
+                    // continue regardless
+                  }
+                });
+                if (ctx.callbackQuery) {
+                  await ctx.reply('Current operation cancelled.');
+                }
                 await conversation.halt({ next: true });
               }
               await ctx.reply(
