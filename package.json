@@ -20,6 +20,7 @@
     "@eslint/js": "^9.39.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.19.7",
+    "@types/tz-lookup": "^6.1.2",
     "dotenv": "^17.2.3",
     "eslint": "^9.39.2",
     "globals": "^17.1.0",
@@ -39,6 +40,7 @@
     "grammy": "^1.39.3",
     "kysely": "^0.28.11",
     "luxon": "^3.7.2",
+    "tz-lookup": "^6.1.25",
     "zod": "^4.3.6"
   }
 }

@@ -3,7 +3,6 @@ import { Composer } from 'grammy';
 import { getDb } from '../database/database';
 import { MyContext } from '../types';
 import { ConversationContext, MyConversation } from '../types';
-import { waitText } from './helpers/wait-text';
 
 export const manageQuotesModule = new Composer<MyContext>();
 
@@ -58,27 +57,75 @@ export const editQuote = async (
   ctx: ConversationContext,
 ) => {
   await conversation.external((ctx) => {
-    ctx.session.activeConversation = 'manage_quotes';
+    ctx.session.activeConversation = 'edit_quote';
   });
   const db = getDb();
-  await ctx.reply('Enter updated quote:');
-  const quoteCtx = await waitText(conversation);
-  await quoteCtx.reply('Enter the quote source:');
-  const sourceCtx = await waitText(conversation);
+  const quotePrompt = 'Enter updated quote:';
+  await ctx.reply(quotePrompt);
 
+  const quoteCtx = await conversation
+    .waitFor(['message', 'callback_query'])
+    .and(
+      (ctx) => {
+        if (ctx.message?.text?.startsWith('/') || ctx.callbackQuery) {
+          return false;
+        }
+        return ctx.has('message:text');
+      },
+      {
+        otherwise: async (ctx) => {
+          if (ctx.message?.text?.startsWith('/')) {
+            await conversation.halt({ next: true });
+          }
+          if (ctx.callbackQuery) {
+            await ctx.reply('Current operation cancelled.');
+            await conversation.halt({ next: true });
+          }
+          await ctx.reply(quotePrompt);
+        },
+      },
+    );
+
+  const sourcePrompt = 'Enter the quote source:';
+  await quoteCtx.reply(sourcePrompt);
+  const sourceCtx = await conversation
+    .waitFor(['message', 'callback_query'])
+    .and(
+      (ctx) => {
+        if (ctx.message?.text?.startsWith('/') || ctx.callbackQuery) {
+          return false;
+        }
+        return ctx.has('message:text');
+      },
+      {
+        otherwise: async (ctx) => {
+          if (ctx.message?.text?.startsWith('/')) {
+            await conversation.halt({ next: true });
+          }
+          if (ctx.callbackQuery) {
+            await ctx.reply('Current operation cancelled.');
+            await conversation.halt({ next: true });
+          }
+          await ctx.reply(sourcePrompt);
+        },
+      },
+    );
+
+  const quoteText = quoteCtx.message?.text;
+  const source = sourceCtx.message?.text;
+  if (!quoteText || !source) {
+    throw new Error('Missing chat in conversation');
+  }
   const quoteId = await conversation.external(
     (ctx) => ctx.session.quotes.selectedId,
   );
-  await conversation.external(() =>
-    db
+  await conversation.external(async () => {
+    await db
       .updateTable('quotes')
-      .set({
-        quoteText: quoteCtx.msg.text,
-        source: sourceCtx.msg.text,
-      })
+      .set({ quoteText, source })
       .where('id', '=', quoteId)
-      .execute(),
-  );
+      .execute();
+  });
 
   await ctx.reply("I've updated your quote!");
 

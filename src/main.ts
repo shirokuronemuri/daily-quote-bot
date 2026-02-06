@@ -23,9 +23,9 @@ import {
   manageCustomMessagesModule,
 } from './commands/manage-custom-messages';
 import {
-  initialTimezoneMenu,
   settingsMenu,
   settingsModule,
+  timezoneConversation,
 } from './commands/settings';
 
 const bootstrap = async () => {
@@ -48,8 +48,12 @@ const bootstrap = async () => {
       description: 'View, edit or delete your custom messages',
     },
     {
+      command: 'settings',
+      description: 'Timezone, sending time and other settings you might need',
+    },
+    {
       command: 'cancel',
-      description: 'Cancel current add/edit operation',
+      description: 'Cancel current operation',
     },
   ]);
 
@@ -74,6 +78,10 @@ const bootstrap = async () => {
           lastMenuMsgId: null,
           menuFingerprint: 0,
         },
+        timezoneSettings: {
+          lastMenuMsgId: null,
+          menuFingerprint: 0,
+        },
         activeConversation: null,
       }),
     }),
@@ -83,13 +91,13 @@ const bootstrap = async () => {
   bot.use(createConversation(editQuote));
   bot.use(createConversation(addCustomMessage));
   bot.use(createConversation(editCustomMessage));
+  bot.use(createConversation(timezoneConversation));
 
   bot.use(quotesMenu);
   bot.use(quoteDetailsMenu);
   bot.use(customMessagesMenu);
   bot.use(customMessageDetailsMenu);
   bot.use(settingsMenu);
-  bot.use(initialTimezoneMenu);
 
   bot.use(startModule);
   bot.use(addQuoteModule);

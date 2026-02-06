@@ -8,7 +8,7 @@ cancelModule.command('cancel', async (ctx) => {
     await ctx.reply("Sorry, there's nothing to cancel...");
   } else {
     await ctx.reply(
-      `The command <code>${ctx.session.activeConversation}</code> was cancelled.`,
+      `<code>${ctx.session.activeConversation}</code> operation was cancelled.`,
       { parse_mode: 'HTML' },
     );
     ctx.session.activeConversation = null;

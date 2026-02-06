@@ -3,7 +3,6 @@ import { Composer } from 'grammy';
 import { getDb } from '../database/database';
 import { MyContext } from '../types';
 import { ConversationContext, MyConversation } from '../types';
-import { waitText } from './helpers/wait-text';
 
 export const manageCustomMessagesModule = new Composer<MyContext>();
 
@@ -57,24 +56,48 @@ export const editCustomMessage = async (
   ctx: ConversationContext,
 ) => {
   await conversation.external((ctx) => {
-    ctx.session.activeConversation = 'manage_custom_messages';
+    ctx.session.activeConversation = 'edit_custom_message';
   });
   const db = getDb();
-  await ctx.reply('Enter updated custom message:');
-  const customMessageCtx = await waitText(conversation);
+  const prompt = 'Enter updated custom message:';
+  await ctx.reply(prompt);
+  const customMessageCtx = await conversation
+    .waitFor(['message', 'callback_query'])
+    .and(
+      (ctx) => {
+        if (ctx.message?.text?.startsWith('/') || ctx.callbackQuery) {
+          return false;
+        }
+        return ctx.has('message:text');
+      },
+      {
+        otherwise: async (ctx) => {
+          if (ctx.message?.text?.startsWith('/')) {
+            await conversation.halt({ next: true });
+          }
+          if (ctx.callbackQuery) {
+            await ctx.reply('Current operation cancelled.');
+            await conversation.halt({ next: true });
+          }
+          await ctx.reply(prompt);
+        },
+      },
+    );
 
+  const text = customMessageCtx.message?.text;
+  if (!text) {
+    throw new Error('Chat object missing in conversation');
+  }
   const customMessageId = await conversation.external(
     (ctx) => ctx.session.customMessages.selectedId,
   );
-  await conversation.external(() =>
-    db
+  await conversation.external(async () => {
+    await db
       .updateTable('customMessages')
-      .set({
-        text: customMessageCtx.msg.text,
-      })
+      .set({ text })
       .where('id', '=', customMessageId)
-      .execute(),
-  );
+      .execute();
+  });
 
   await ctx.reply("I've updated your custom message!");
 
