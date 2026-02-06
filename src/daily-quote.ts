@@ -5,6 +5,7 @@ import { sql } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/sqlite';
 import { MyContext } from './types';
 import { DateTime } from 'luxon';
+import { withUpdatedAt } from './database/helpers/with-updated-at';
 
 const updateDailyOffsets = async () => {
   const db = getDb();
@@ -27,7 +28,7 @@ const updateDailyOffsets = async () => {
     for (const update of updates) {
       await trx
         .updateTable('chats')
-        .set({ dailyOffset: update.currentOffset })
+        .set(withUpdatedAt({ dailyOffset: update.currentOffset }))
         .where('id', '=', update.id)
         .execute();
     }

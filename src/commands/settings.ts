@@ -5,6 +5,7 @@ import { sql } from 'kysely';
 import { Composer, InlineKeyboard } from 'grammy';
 import tzlookup from 'tz-lookup';
 import { DateTime } from 'luxon';
+import { withUpdatedAt } from 'src/database/helpers/with-updated-at';
 
 export const settingsModule = new Composer<MyContext>();
 
@@ -48,7 +49,7 @@ export const settingsMenu = new Menu<MyContext>('settingsMenu', menuOptions)
       const db = getDb();
       await db
         .updateTable('chats')
-        .set({ sendDailyQuote: sql`NOT send_daily_quote` })
+        .set(withUpdatedAt({ sendDailyQuote: sql`NOT send_daily_quote` }))
         .where('id', '=', ctx.chat.id)
         .execute();
 
@@ -167,7 +168,7 @@ export const timezoneConversation = async (
       await conversation.external(async () => {
         await db
           .updateTable('chats')
-          .set({ ianaTimezone: timezone, dailyOffset: offset })
+          .set(withUpdatedAt({ ianaTimezone: timezone, dailyOffset: offset }))
           .where('id', '=', chatId)
           .execute();
       });
@@ -315,7 +316,12 @@ export const timezoneConversation = async (
         await conversation.external(async () => {
           await db
             .updateTable('chats')
-            .set({ ianaTimezone: timezone?.fullName, dailyOffset: offset })
+            .set(
+              withUpdatedAt({
+                ianaTimezone: timezone?.fullName,
+                dailyOffset: offset,
+              }),
+            )
             .where('id', '=', chatId)
             .execute();
         });

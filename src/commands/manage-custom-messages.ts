@@ -3,6 +3,7 @@ import { Composer } from 'grammy';
 import { getDb } from '../database/database';
 import { MyContext } from '../types';
 import { ConversationContext, MyConversation } from '../types';
+import { withUpdatedAt } from 'src/database/helpers/with-updated-at';
 
 export const manageCustomMessagesModule = new Composer<MyContext>();
 
@@ -94,7 +95,7 @@ export const editCustomMessage = async (
   await conversation.external(async () => {
     await db
       .updateTable('customMessages')
-      .set({ text })
+      .set(withUpdatedAt({ text }))
       .where('id', '=', customMessageId)
       .execute();
   });

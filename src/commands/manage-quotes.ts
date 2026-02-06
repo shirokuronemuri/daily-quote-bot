@@ -3,6 +3,7 @@ import { Composer } from 'grammy';
 import { getDb } from '../database/database';
 import { MyContext } from '../types';
 import { ConversationContext, MyConversation } from '../types';
+import { withUpdatedAt } from 'src/database/helpers/with-updated-at';
 
 export const manageQuotesModule = new Composer<MyContext>();
 
@@ -122,7 +123,7 @@ export const editQuote = async (
   await conversation.external(async () => {
     await db
       .updateTable('quotes')
-      .set({ quoteText, source })
+      .set(withUpdatedAt({ quoteText, source }))
       .where('id', '=', quoteId)
       .execute();
   });
