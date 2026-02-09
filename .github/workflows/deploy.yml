@@ -8,6 +8,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: debug ssh
+        run: nc -zv -w 5 ${{secrets.VPS_HOST}} 22
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
