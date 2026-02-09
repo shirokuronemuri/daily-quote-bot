@@ -3,4 +3,4 @@ import { MyContext } from '../types';
 
 export const startModule = new Composer<MyContext>();
 
-startModule.command('start', (ctx) => ctx.reply('hello, oniichan!'));
+startModule.command('start', (ctx) => ctx.reply('<b>hello</b>, oniichan!'));

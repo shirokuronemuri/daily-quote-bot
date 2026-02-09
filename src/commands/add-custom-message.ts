@@ -3,6 +3,7 @@ import { getDb } from '../database/database';
 import { ConversationContext, MyConversation } from '../types';
 import { Composer } from 'grammy';
 import { waitForTextMessage } from './helpers/wait-message';
+import { sanitizeInput } from './helpers/sanitize-input';
 
 export const addCustomMessageModule = new Composer<MyContext>();
 
@@ -19,6 +20,7 @@ export const addCustomMessage = async (
   await ctx.reply(prompt);
   const customCtx = await waitForTextMessage(conversation, prompt);
   const chatId = customCtx.chat.id;
+  const text = sanitizeInput(customCtx.message.text);
   await conversation.external(async () => {
     await db
       .insertInto('chats')
@@ -27,10 +29,7 @@ export const addCustomMessage = async (
       .execute();
   });
   await conversation.external(async () => {
-    await db
-      .insertInto('customMessages')
-      .values({ text: customCtx.message.text, chatId })
-      .execute();
+    await db.insertInto('customMessages').values({ text, chatId }).execute();
   });
 
   await ctx.reply("I've remembered your message!");
