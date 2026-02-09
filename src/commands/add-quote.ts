@@ -1,8 +1,8 @@
 import { Composer } from 'grammy';
-import { MyContext } from 'src/types';
+import { MyContext } from '../types';
 import { getDb } from '../database/database';
 import { ConversationContext, MyConversation } from '../types';
-import { waitText } from './helpers/wait-text';
+import { waitForTextMessage } from './helpers/wait-message';
 
 export const addQuoteModule = new Composer<MyContext>();
 
@@ -14,29 +14,31 @@ export const addQuote = async (
     ctx.session.activeConversation = 'add_quote';
   });
   const db = getDb();
-  await ctx.reply('Enter new quote:');
-  const quoteCtx = await waitText(conversation);
-  await quoteCtx.reply('Enter the quote source:');
-  const sourceCtx = await waitText(conversation);
+  const quotePrompt = 'Enter new quote:';
+  await ctx.reply(quotePrompt);
+  const quoteCtx = await waitForTextMessage(conversation, quotePrompt);
+  const sourcePrompt = 'Enter the quote source:';
+  await quoteCtx.reply(sourcePrompt);
+  const sourceCtx = await waitForTextMessage(conversation, sourcePrompt);
 
   const chatId = sourceCtx.chat.id;
-  await conversation.external(() =>
-    db
+  await conversation.external(async () => {
+    await db
       .insertInto('chats')
       .values({ id: chatId })
       .onConflict((oc) => oc.column('id').doNothing())
-      .execute(),
-  );
-  await conversation.external(() =>
-    db
+      .execute();
+  });
+  await conversation.external(async () => {
+    await db
       .insertInto('quotes')
       .values({
-        quoteText: quoteCtx.msg.text,
-        source: sourceCtx.msg.text,
+        quoteText: quoteCtx.message.text,
+        source: sourceCtx.message.text,
         chatId,
       })
-      .execute(),
-  );
+      .execute();
+  });
 
   await conversation.external((ctx) => ctx.session.quotes.totalCount++);
   await ctx.reply("I've written down your quote!");

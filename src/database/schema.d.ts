@@ -13,11 +13,17 @@ export interface Database {
   session: SessionTable;
 }
 
-export type CreatedAt = ColumnType<Date, string | undefined, never>;
-export type UpdatedAt = ColumnType<Date, string | undefined, string>;
+export type Defaultable<T> = ColumnType<T, T | undefined, T>;
+export type CreatedAt = ColumnType<string, string | undefined, never>;
+export type UpdatedAt = Defaultable<string>;
 
 export interface ChatTable {
   id: number;
+  sendDailyQuote: Defaultable<boolean>;
+  sendTime: Defaultable<string>;
+  ianaTimezone: Defaultable<string>;
+  dailyOffset: Defaultable<string>;
+  lastSentDate: string | null;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }

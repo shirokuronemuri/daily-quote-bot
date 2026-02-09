@@ -1,26 +1,81 @@
-import { ConversationFlavor } from '@grammyjs/conversations';
 import { CronJob } from 'cron';
-import { Bot, Context } from 'grammy';
+import { Bot } from 'grammy';
 import { getDb } from './database/database';
 import { sql } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/sqlite';
+import { MyContext } from './types';
+import { DateTime } from 'luxon';
+import { withUpdatedAt } from './database/helpers/with-updated-at';
 
-export const initDailyQuoteCron = (bot: Bot<ConversationFlavor<Context>>) => {
-  // todo: handle all timezones and custom times
+const updateDailyOffsets = async () => {
+  const db = getDb();
+  const chats = await db
+    .selectFrom('chats')
+    .select(['id', 'ianaTimezone'])
+    .execute();
+  const updates = chats.map((chat) => {
+    const currentOffset = DateTime.now()
+      .setZone(chat.ianaTimezone)
+      .toFormat('ZZ');
+
+    return {
+      id: chat.id,
+      currentOffset,
+    };
+  });
+
+  await db.transaction().execute(async (trx) => {
+    for (const update of updates) {
+      await trx
+        .updateTable('chats')
+        .set(withUpdatedAt({ dailyOffset: update.currentOffset }))
+        .where('id', '=', update.id)
+        .execute();
+    }
+  });
+};
+
+export const initDailyQuoteCron = (bot: Bot<MyContext>) => {
   CronJob.from({
-    cronTime: '0 10 * * *',
+    cronTime: '1 */15 * * * *',
     onTick: async () => {
       await sendDailyQuote(bot);
     },
     start: true,
-    timeZone: 'Europe/Kyiv',
+    timeZone: 'UTC',
   });
 };
 
-const sendDailyQuote = async (bot: Bot<ConversationFlavor<Context>>) => {
+const sendDailyQuote = async (bot: Bot<MyContext>) => {
+  console.log(
+    `[${DateTime.now().toFormat('HH:mm')}]: running sendDailyQuote cron job`,
+  );
+  const now = DateTime.utc();
+  if (now.hour === 3 && now.minute === 0) {
+    console.log('Starting daily offsets update...');
+    await updateDailyOffsets();
+  }
+
   const db = getDb();
   const chats = await db
     .selectFrom('chats')
+    .where((eb) =>
+      eb.and([
+        eb(
+          sql`strftime('%H:%M', 'now', chats.daily_offset)`,
+          '=',
+          eb.ref('chats.sendTime'),
+        ),
+        eb.or([
+          eb('lastSentDate', 'is', null),
+          eb(
+            'lastSentDate',
+            '!=',
+            sql<string>`date('now', chats.daily_offset)`,
+          ),
+        ]),
+      ]),
+    )
     .select([
       'id',
       (qb) =>
@@ -49,4 +104,15 @@ const sendDailyQuote = async (bot: Bot<ConversationFlavor<Context>>) => {
     const message = `${chat.customMessage ?? defaultMessage}\n\n${chat.quote.quoteText}\n\nー ${chat.quote.source}`;
     await bot.api.sendMessage(chat.id, message);
   }
+  await db.transaction().execute(async (trx) => {
+    for (const chat of chats) {
+      await trx
+        .updateTable('chats')
+        .set(
+          withUpdatedAt({ lastSentDate: sql`date('now', chats.daily_offset)` }),
+        )
+        .where('id', '=', chat.id)
+        .execute();
+    }
+  });
 };

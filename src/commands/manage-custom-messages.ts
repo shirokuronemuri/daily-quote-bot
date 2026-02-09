@@ -3,7 +3,8 @@ import { Composer } from 'grammy';
 import { getDb } from '../database/database';
 import { MyContext } from '../types';
 import { ConversationContext, MyConversation } from '../types';
-import { waitText } from './helpers/wait-text';
+import { withUpdatedAt } from '../database/helpers/with-updated-at';
+import { waitForTextMessage } from './helpers/wait-message';
 
 export const manageCustomMessagesModule = new Composer<MyContext>();
 
@@ -28,7 +29,7 @@ const getCustomMessageText = async (chatId: number, page: number) => {
   const offset = page * pageSize;
   const customMessages = await getCustomMessages(chatId, page);
   if (customMessages.length === 0) {
-    return 'No custom messages found  >.<';
+    return 'No custom messages found  &gt;.&lt;';
   } else {
     return (
       'Select custom message that you want to manage:\n\n' +
@@ -57,27 +58,24 @@ export const editCustomMessage = async (
   ctx: ConversationContext,
 ) => {
   await conversation.external((ctx) => {
-    ctx.session.activeConversation = 'manage_custom_messages';
+    ctx.session.activeConversation = 'edit_custom_message';
   });
   const db = getDb();
-  await ctx.reply('Enter updated custom message:');
-  const customMessageCtx = await waitText(conversation);
-
+  const prompt = 'Enter updated custom message:';
+  await ctx.reply(prompt);
+  const customMessageCtx = await waitForTextMessage(conversation, prompt);
   const customMessageId = await conversation.external(
     (ctx) => ctx.session.customMessages.selectedId,
   );
-  await conversation.external(() =>
-    db
+  await conversation.external(async () => {
+    await db
       .updateTable('customMessages')
-      .set({
-        text: customMessageCtx.msg.text,
-      })
+      .set(withUpdatedAt({ text: customMessageCtx.message.text }))
       .where('id', '=', customMessageId)
-      .execute(),
-  );
+      .execute();
+  });
 
   await ctx.reply("I've updated your custom message!");
-
   await conversation.external((ctx) => {
     ctx.session.activeConversation = null;
   });

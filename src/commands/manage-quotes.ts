@@ -3,7 +3,8 @@ import { Composer } from 'grammy';
 import { getDb } from '../database/database';
 import { MyContext } from '../types';
 import { ConversationContext, MyConversation } from '../types';
-import { waitText } from './helpers/wait-text';
+import { withUpdatedAt } from '../database/helpers/with-updated-at';
+import { waitForTextMessage } from './helpers/wait-message';
 
 export const manageQuotesModule = new Composer<MyContext>();
 
@@ -28,7 +29,7 @@ const getQuoteText = async (chatId: number, page: number) => {
   const offset = page * pageSize;
   const quotes = await getQuotes(chatId, page);
   if (quotes.length === 0) {
-    return 'No quotes found  >.<';
+    return 'No quotes found  &gt;.&lt;';
   } else {
     return (
       'Select quote you want to manage:\n\n' +
@@ -58,30 +59,33 @@ export const editQuote = async (
   ctx: ConversationContext,
 ) => {
   await conversation.external((ctx) => {
-    ctx.session.activeConversation = 'manage_quotes';
+    ctx.session.activeConversation = 'edit_quote';
   });
   const db = getDb();
-  await ctx.reply('Enter updated quote:');
-  const quoteCtx = await waitText(conversation);
-  await quoteCtx.reply('Enter the quote source:');
-  const sourceCtx = await waitText(conversation);
+  const quotePrompt = 'Enter updated quote:';
+  await ctx.reply(quotePrompt);
 
+  const quoteCtx = await waitForTextMessage(conversation, quotePrompt);
+  const sourcePrompt = 'Enter the quote source:';
+  await quoteCtx.reply(sourcePrompt);
+  const sourceCtx = await waitForTextMessage(conversation, sourcePrompt);
   const quoteId = await conversation.external(
     (ctx) => ctx.session.quotes.selectedId,
   );
-  await conversation.external(() =>
-    db
+  await conversation.external(async () => {
+    await db
       .updateTable('quotes')
-      .set({
-        quoteText: quoteCtx.msg.text,
-        source: sourceCtx.msg.text,
-      })
+      .set(
+        withUpdatedAt({
+          quoteText: quoteCtx.message.text,
+          source: sourceCtx.message.text,
+        }),
+      )
       .where('id', '=', quoteId)
-      .execute(),
-  );
+      .execute();
+  });
 
   await ctx.reply("I've updated your quote!");
-
   await conversation.external((ctx) => {
     ctx.session.activeConversation = null;
   });
