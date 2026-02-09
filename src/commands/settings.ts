@@ -73,11 +73,160 @@ export const settingsMenu = new Menu<MyContext>('settingsMenu', menuOptions)
       return `Timezone: ${ianaTimezone} (${dailyOffset})`;
     },
     async (ctx) => {
-      await ctx.conversation.enter('timezoneConversation');
+      await ctx.conversation.enter('setTimezoneConversation');
+    },
+  )
+  .row()
+  .text(
+    async (ctx) => {
+      if (!ctx.chat) throw new Error('Missing chat in menu context');
+      const db = getDb();
+      const { sendTime } =
+        (await db
+          .selectFrom('chats')
+          .where('id', '=', ctx.chat.id)
+          .select('sendTime')
+          .executeTakeFirst()) ?? {};
+
+      return `Daily sending time: ${sendTime}`;
+    },
+    async (ctx) => {
+      await ctx.conversation.enter('setTimeConversation');
     },
   );
 
-export const timezoneConversation = async (
+export const setTimeConversation = async (
+  conversation: MyConversation,
+  ctx: ConversationContext,
+) => {
+  await conversation.external((ctx) => {
+    ctx.session.activeConversation = 'set_time';
+  });
+  const hourSelectKeyboard = new InlineKeyboard();
+  for (let hour = 0; hour < 24; ++hour) {
+    const hourString = String(hour).padStart(2, '0');
+    hourSelectKeyboard.text(`${hour}`, `hour:${hourString}`);
+    if ((hour + 1) % 8 === 0) {
+      hourSelectKeyboard.row();
+    }
+  }
+  const hourSelectMsg = await ctx.reply(
+    'Select hour at which the message will be sent:',
+    {
+      reply_markup: hourSelectKeyboard,
+    },
+  );
+  const chatId = hourSelectMsg.chat.id;
+  const hourCtx = await conversation
+    .waitFor('callback_query', {
+      otherwise: async (ctx) => {
+        if (ctx.has('message')) {
+          if (ctx.message.text?.startsWith('/')) {
+            await conversation.external(async (ctx) => {
+              await resetMenu(ctx, chatId, hourSelectMsg.message_id);
+              if (!ctx.hasCommand('cancel')) {
+                ctx.session.activeConversation = null;
+              }
+            });
+            await conversation.halt({ next: true });
+          }
+          await ctx.reply(
+            'Please select the hour from the message above or send /cancel to abort operation.',
+          );
+        }
+      },
+    })
+    .and(
+      (ctx) => (ctx.callbackQuery.data?.startsWith('hour:') ? true : false),
+      {
+        otherwise: async (ctx) => {
+          await conversation.external(async (ctx) => {
+            await resetMenu(ctx, chatId, hourSelectMsg.message_id);
+            ctx.session.activeConversation = null;
+          });
+          await ctx.reply('Current operation cancelled.');
+          await conversation.halt({ next: true });
+        },
+      },
+    );
+
+  const hour = hourCtx.callbackQuery.data?.split(':')[1];
+  await conversation.external(async (ctx) => {
+    await resetMenu(ctx, chatId, hourSelectMsg.message_id);
+  });
+
+  const minuteSelectKeyboard = new InlineKeyboard();
+  for (let i = 0; i < 4; i++) {
+    const minuteString = String(i * 15).padStart(2, '0');
+    minuteSelectKeyboard.text(
+      `${hour}:${minuteString}`,
+      `minute:${minuteString}`,
+    );
+    if ((i + 1) % 2 === 0) {
+      minuteSelectKeyboard.row();
+    }
+  }
+  const minuteSelectMsg = await ctx.reply(
+    'Select the precise time from variants below:',
+    {
+      reply_markup: minuteSelectKeyboard,
+    },
+  );
+  const minuteCtx = await conversation
+    .waitFor('callback_query', {
+      otherwise: async (ctx) => {
+        if (ctx.has('message')) {
+          if (ctx.message.text?.startsWith('/')) {
+            await conversation.external(async (ctx) => {
+              await resetMenu(ctx, chatId, minuteSelectMsg.message_id);
+              if (!ctx.hasCommand('cancel')) {
+                ctx.session.activeConversation = null;
+              }
+            });
+            await conversation.halt({ next: true });
+          }
+          await ctx.reply(
+            'Please select the sending time from the message above or send /cancel to abort operation.',
+          );
+        }
+      },
+    })
+    .and(
+      (ctx) => (ctx.callbackQuery.data?.startsWith('minute:') ? true : false),
+      {
+        otherwise: async (ctx) => {
+          await conversation.external(async (ctx) => {
+            await resetMenu(ctx, chatId, minuteSelectMsg.message_id);
+            ctx.session.activeConversation = null;
+          });
+          await ctx.reply('Current operation cancelled.');
+          await conversation.halt({ next: true });
+        },
+      },
+    );
+
+  const minute = minuteCtx.callbackQuery.data?.split(':')[1];
+  await conversation.external(async (ctx) => {
+    await resetMenu(ctx, chatId, minuteSelectMsg.message_id);
+  });
+
+  const sendTime = `${hour}:${minute}`;
+  const db = getDb();
+  await conversation.external(async () => {
+    await db
+      .updateTable('chats')
+      .set(withUpdatedAt({ sendTime }))
+      .where('id', '=', chatId)
+      .execute();
+  });
+
+  await ctx.reply(`I've set your daily message time to ${sendTime}!`);
+  await conversation.external((ctx) => {
+    ctx.session.activeConversation = null;
+  });
+};
+
+export const setTimezoneConversation = async (
   conversation: MyConversation,
   ctx: ConversationContext,
 ) => {
@@ -103,6 +252,9 @@ export const timezoneConversation = async (
           if (ctx.message?.text?.startsWith('/') || ctx.callbackQuery) {
             await conversation.external(async (ctx) => {
               await resetMenu(ctx, chatId, settingsMenuMsg.message_id);
+              if (!ctx.hasCommand('cancel')) {
+                ctx.session.activeConversation = null;
+              }
             });
             if (ctx.callbackQuery) {
               await ctx.reply('Current operation cancelled.');
@@ -121,7 +273,7 @@ export const timezoneConversation = async (
   });
   if (filteredCtx.has('message:location')) {
     const { latitude, longitude } = filteredCtx.message.location;
-    const timezone = tzlookup(latitude, longitude);
+    const timezone = tzlookup(latitude, longitude).replace('Kiev', 'Kyiv');
     const offset = DateTime.now().setZone(timezone).toFormat('ZZ');
 
     const confirmMenuCtx = await filteredCtx.reply(
@@ -137,6 +289,12 @@ export const timezoneConversation = async (
         otherwise: async (ctx) => {
           if (ctx.has('message')) {
             if (ctx.message.text?.startsWith('/')) {
+              await conversation.external(async (ctx) => {
+                await resetMenu(ctx, chatId, confirmMenuCtx.message_id);
+                if (!ctx.hasCommand('cancel')) {
+                  ctx.session.activeConversation = null;
+                }
+              });
               await conversation.halt({ next: true });
             }
             await ctx.reply(
@@ -149,6 +307,10 @@ export const timezoneConversation = async (
         (ctx) => ['tz_save', 'tz_retry'].includes(ctx.callbackQuery.data ?? ''),
         {
           otherwise: async (ctx) => {
+            await conversation.external(async (ctx) => {
+              await resetMenu(ctx, chatId, confirmMenuCtx.message_id);
+              ctx.session.activeConversation = null;
+            });
             await ctx.reply('Current operation cancelled.');
             await conversation.halt({ next: true });
           },
@@ -234,6 +396,12 @@ export const timezoneConversation = async (
           otherwise: async (ctx) => {
             if (ctx.has('message')) {
               if (ctx.message.text?.startsWith('/')) {
+                await conversation.external(async (ctx) => {
+                  await resetMenu(ctx, chatId, searchResultsMsg.message_id);
+                  if (!ctx.hasCommand('cancel')) {
+                    ctx.session.activeConversation = null;
+                  }
+                });
                 await conversation.halt({ next: true });
               }
               await ctx.reply(
@@ -252,6 +420,7 @@ export const timezoneConversation = async (
             otherwise: async (ctx) => {
               await conversation.external(async (ctx) => {
                 await resetMenu(ctx, chatId, searchResultsMsg.message_id);
+                ctx.session.activeConversation = null;
               });
               await ctx.reply('Current operation cancelled.');
               await conversation.halt({ next: true });

@@ -29,7 +29,7 @@ const getCustomMessageText = async (chatId: number, page: number) => {
   const offset = page * pageSize;
   const customMessages = await getCustomMessages(chatId, page);
   if (customMessages.length === 0) {
-    return 'No custom messages found  >.<';
+    return 'No custom messages found  &gt;.&lt;';
   } else {
     return (
       'Select custom message that you want to manage:\n\n' +

@@ -9,6 +9,9 @@ export const waitForTextMessage = async (
     .waitFor('message:text', {
       otherwise: async (ctx) => {
         if (ctx.has('callback_query')) {
+          await conversation.external((ctx) => {
+            ctx.session.activeConversation = null;
+          });
           await ctx.reply('Current operation cancelled.');
           await conversation.halt({ next: true });
         }
@@ -19,6 +22,9 @@ export const waitForTextMessage = async (
     })
     .and((ctx) => !ctx.message.text.startsWith('/'), {
       otherwise: async () => {
+        await conversation.external((ctx) => {
+          ctx.session.activeConversation = null;
+        });
         await conversation.halt({ next: true });
       },
     });

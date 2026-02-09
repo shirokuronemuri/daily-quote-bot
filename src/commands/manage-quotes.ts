@@ -29,7 +29,7 @@ const getQuoteText = async (chatId: number, page: number) => {
   const offset = page * pageSize;
   const quotes = await getQuotes(chatId, page);
   if (quotes.length === 0) {
-    return 'No quotes found  >.<';
+    return 'No quotes found  &gt;.&lt;';
   } else {
     return (
       'Select quote you want to manage:\n\n' +

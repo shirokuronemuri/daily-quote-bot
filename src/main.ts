@@ -23,9 +23,10 @@ import {
   manageCustomMessagesModule,
 } from './commands/manage-custom-messages';
 import {
+  setTimeConversation,
+  setTimezoneConversation,
   settingsMenu,
   settingsModule,
-  timezoneConversation,
 } from './commands/settings';
 
 const bootstrap = async () => {
@@ -91,7 +92,8 @@ const bootstrap = async () => {
   bot.use(createConversation(editQuote));
   bot.use(createConversation(addCustomMessage));
   bot.use(createConversation(editCustomMessage));
-  bot.use(createConversation(timezoneConversation));
+  bot.use(createConversation(setTimezoneConversation));
+  bot.use(createConversation(setTimeConversation));
 
   bot.use(quotesMenu);
   bot.use(quoteDetailsMenu);

@@ -37,16 +37,19 @@ const updateDailyOffsets = async () => {
 
 export const initDailyQuoteCron = (bot: Bot<MyContext>) => {
   CronJob.from({
-    cronTime: '0 10 * * *',
+    cronTime: '1 */15 * * * *',
     onTick: async () => {
       await sendDailyQuote(bot);
     },
     start: true,
-    timeZone: 'Europe/Kyiv',
+    timeZone: 'UTC',
   });
 };
 
 const sendDailyQuote = async (bot: Bot<MyContext>) => {
+  console.log(
+    `[${DateTime.now().toFormat('HH:mm')}]: running sendDailyQuote cron job`,
+  );
   const now = DateTime.utc();
   if (now.hour === 3 && now.minute === 0) {
     console.log('Starting daily offsets update...');
@@ -59,7 +62,7 @@ const sendDailyQuote = async (bot: Bot<MyContext>) => {
     .where((eb) =>
       eb.and([
         eb(
-          sql`strftime('%H:%M', 'now', chats.currentOffset)`,
+          sql`strftime('%H:%M', 'now', chats.daily_offset)`,
           '=',
           eb.ref('chats.sendTime'),
         ),
@@ -68,7 +71,7 @@ const sendDailyQuote = async (bot: Bot<MyContext>) => {
           eb(
             'lastSentDate',
             '!=',
-            sql<string>`date('now', chats.currentOffset)`,
+            sql<string>`date('now', chats.daily_offset)`,
           ),
         ]),
       ]),
@@ -101,4 +104,15 @@ const sendDailyQuote = async (bot: Bot<MyContext>) => {
     const message = `${chat.customMessage ?? defaultMessage}\n\n${chat.quote.quoteText}\n\nー ${chat.quote.source}`;
     await bot.api.sendMessage(chat.id, message);
   }
+  await db.transaction().execute(async (trx) => {
+    for (const chat of chats) {
+      await trx
+        .updateTable('chats')
+        .set(
+          withUpdatedAt({ lastSentDate: sql`date('now', chats.daily_offset)` }),
+        )
+        .where('id', '=', chat.id)
+        .execute();
+    }
+  });
 };
