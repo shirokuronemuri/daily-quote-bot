@@ -10,8 +10,8 @@ jobs:
     steps:
       - name: debug ssh
         run: |
-          curl -s https://api.ipify.org
-          nc -zv -w 5 ${{secrets.VPS_HOST}} 22
+          sudo apt-get install -y mtr
+          mtr -rw --count 1 ${{secrets.VPS_HOST}}
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
