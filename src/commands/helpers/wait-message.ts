@@ -21,10 +21,12 @@ export const waitForTextMessage = async (
       },
     })
     .and((ctx) => !ctx.message.text.startsWith('/'), {
-      otherwise: async () => {
-        await conversation.external((ctx) => {
-          ctx.session.activeConversation = null;
-        });
+      otherwise: async (ctx) => {
+        if (!ctx.hasCommand('cancel')) {
+          await conversation.external((ctx) => {
+            ctx.session.activeConversation = null;
+          });
+        }
         await conversation.halt({ next: true });
       },
     });
