@@ -28,6 +28,7 @@ import {
   settingsMenu,
   settingsModule,
 } from './commands/settings';
+import { randomQuoteModule } from './commands/random-quote';
 
 const bootstrap = async () => {
   const bot = new Bot<MyContext>(config.botToken);
@@ -47,6 +48,10 @@ const bootstrap = async () => {
     {
       command: 'manage_custom_messages',
       description: 'View, edit or delete your custom messages',
+    },
+    {
+      command: 'random_quote',
+      description: 'Send a random quote',
     },
     {
       command: 'settings',
@@ -108,6 +113,7 @@ const bootstrap = async () => {
   bot.use(addCustomMessageModule);
   bot.use(manageCustomMessagesModule);
   bot.use(settingsModule);
+  bot.use(randomQuoteModule);
 
   void bot.start({ onStart: () => console.log('The bot is running, wafu!') });
 };
