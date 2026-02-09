@@ -11,7 +11,7 @@ jobs:
       - name: debug ssh
         run: |
           sudo apt-get install -y mtr
-          sudo mtr -rn -c 10 -T -P 22 ${{secrets.VPS_HOST}}
+          sudo mtr -rnw -c 5 ${{secrets.VPS_HOST}}
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
