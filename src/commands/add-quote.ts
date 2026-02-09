@@ -3,6 +3,7 @@ import { MyContext } from '../types';
 import { getDb } from '../database/database';
 import { ConversationContext, MyConversation } from '../types';
 import { waitForTextMessage } from './helpers/wait-message';
+import { sanitizeInput } from './helpers/sanitize-input';
 
 export const addQuoteModule = new Composer<MyContext>();
 
@@ -22,6 +23,8 @@ export const addQuote = async (
   const sourceCtx = await waitForTextMessage(conversation, sourcePrompt);
 
   const chatId = sourceCtx.chat.id;
+  const quoteText = sanitizeInput(quoteCtx.message.text);
+  const source = sanitizeInput(sourceCtx.message.text);
   await conversation.external(async () => {
     await db
       .insertInto('chats')
@@ -33,8 +36,8 @@ export const addQuote = async (
     await db
       .insertInto('quotes')
       .values({
-        quoteText: quoteCtx.message.text,
-        source: sourceCtx.message.text,
+        quoteText,
+        source,
         chatId,
       })
       .execute();

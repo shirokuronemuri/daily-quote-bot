@@ -5,6 +5,7 @@ import { MyContext } from '../types';
 import { ConversationContext, MyConversation } from '../types';
 import { withUpdatedAt } from '../database/helpers/with-updated-at';
 import { waitForTextMessage } from './helpers/wait-message';
+import { sanitizeInput } from './helpers/sanitize-input';
 
 export const manageCustomMessagesModule = new Composer<MyContext>();
 
@@ -67,10 +68,11 @@ export const editCustomMessage = async (
   const customMessageId = await conversation.external(
     (ctx) => ctx.session.customMessages.selectedId,
   );
+  const text = sanitizeInput(customMessageCtx.message.text);
   await conversation.external(async () => {
     await db
       .updateTable('customMessages')
-      .set(withUpdatedAt({ text: customMessageCtx.message.text }))
+      .set(withUpdatedAt({ text }))
       .where('id', '=', customMessageId)
       .execute();
   });
@@ -116,7 +118,7 @@ export const customMessagesMenu = new Menu<MyContext>(
         ctx.chat.id,
         ctx.session.customMessages.page,
       );
-      await ctx.editMessageText(newText, { parse_mode: 'HTML' });
+      await ctx.editMessageText(newText);
     } else {
       await ctx.answerCallbackQuery('You are on the first page!');
     }
@@ -136,7 +138,7 @@ export const customMessagesMenu = new Menu<MyContext>(
         ctx.chat.id,
         ctx.session.customMessages.page,
       );
-      await ctx.editMessageText(newText, { parse_mode: 'HTML' });
+      await ctx.editMessageText(newText);
     } else {
       await ctx.answerCallbackQuery('You are on the last page!');
     }
@@ -153,7 +155,7 @@ export const customMessagesMenu = new Menu<MyContext>(
       range.text(`#${offset + index + 1}`, async (ctx) => {
         ctx.session.customMessages.selectedId = msg.id;
         const detailsText = `Selected custom message #${offset + index + 1}:\n\n<blockquote>${msg.text}</blockquote>\n\nSelect action below:`;
-        await ctx.editMessageText(detailsText, { parse_mode: 'HTML' });
+        await ctx.editMessageText(detailsText);
         await ctx.menu.nav('customMessageDetailsMenu', { immediate: true });
       });
 
@@ -173,7 +175,7 @@ export const customMessageDetailsMenu = new Menu<MyContext>(
       ctx.chat.id,
       ctx.session.customMessages.page,
     );
-    await ctx.editMessageText(newText, { parse_mode: 'HTML' });
+    await ctx.editMessageText(newText);
     await ctx.menu.nav('customMessagesMenu', { immediate: true });
   })
   .row()
@@ -208,7 +210,7 @@ export const customMessageDetailsMenu = new Menu<MyContext>(
       ctx.chat.id,
       ctx.session.customMessages.page,
     );
-    await ctx.editMessageText(newText, { parse_mode: 'HTML' });
+    await ctx.editMessageText(newText);
     await ctx.menu.nav('customMessagesMenu', { immediate: true });
     await ctx.answerCallbackQuery('Custom message deleted from list!');
   });
@@ -233,7 +235,6 @@ manageCustomMessagesModule.command('manage_custom_messages', async (ctx) => {
   const customMessageCount = await getCustomMessageCount(ctx.chat.id);
   ctx.session.customMessages.totalCount = customMessageCount;
   const msg = await ctx.reply(customMessages, {
-    parse_mode: 'HTML',
     ...(customMessageCount > 0 ? { reply_markup: customMessagesMenu } : {}),
   });
   ctx.session.customMessages.lastMenuMsgId = msg.message_id;

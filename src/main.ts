@@ -29,6 +29,7 @@ import {
   settingsModule,
 } from './commands/settings';
 import { randomQuoteModule } from './commands/random-quote';
+import { htmlParseMode } from './util/html-parse-mode';
 
 const bootstrap = async () => {
   const bot = new Bot<MyContext>(config.botToken);
@@ -92,6 +93,7 @@ const bootstrap = async () => {
       }),
     }),
   );
+  bot.api.config.use(htmlParseMode);
   bot.use(conversations());
   bot.use(createConversation(addQuote));
   bot.use(createConversation(editQuote));

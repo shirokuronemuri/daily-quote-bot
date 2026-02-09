@@ -9,7 +9,6 @@ cancelModule.command('cancel', async (ctx) => {
   } else {
     await ctx.reply(
       `<code>${ctx.session.activeConversation}</code> operation was cancelled.`,
-      { parse_mode: 'HTML' },
     );
     ctx.session.activeConversation = null;
   }

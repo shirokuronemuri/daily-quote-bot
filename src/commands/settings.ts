@@ -8,6 +8,7 @@ import { DateTime } from 'luxon';
 import { withUpdatedAt } from '../database/helpers/with-updated-at';
 import { waitForTextMessage } from './helpers/wait-message';
 import { resetMenu } from './helpers/reset-menu';
+import { sanitizeInput } from './helpers/sanitize-input';
 
 export const settingsModule = new Composer<MyContext>();
 
@@ -337,13 +338,12 @@ export const setTimezoneConversation = async (
     const manualSearchCheckpoint = conversation.checkpoint();
     await filteredCtx.reply(
       'Type the name of your timezone city or its part to apply search: (example: <code>Kyiv</code>; <code>tokyo</code>; <code>new_york</code>; minimum 3 characters long)',
-      { parse_mode: 'HTML' },
     );
     const searchTermCtx = await waitForTextMessage(
       conversation,
       'Please search for your timezone city or send /cancel to abort operation.',
     );
-    const searchTerm = searchTermCtx.message.text;
+    const searchTerm = sanitizeInput(searchTermCtx.message.text);
     if (searchTerm.length < 3) {
       await ctx.reply(
         'Search term should be at least 3 characters long, please try again!',
@@ -370,7 +370,6 @@ export const setTimezoneConversation = async (
     if (timezoneMatches.length === 0) {
       await ctx.reply(
         `No timezones found by <code>${searchTerm}</code>, please make sure you entered it correctly and try again, or /cancel and retry the timezone setup sending your location instead.`,
-        { parse_mode: 'HTML' },
       );
       await conversation.rewind(manualSearchCheckpoint);
     } else {
