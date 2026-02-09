@@ -4,6 +4,7 @@ import { getDb } from '../database/database';
 import { MyContext } from '../types';
 import { ConversationContext, MyConversation } from '../types';
 import { withUpdatedAt } from '../database/helpers/with-updated-at';
+import { waitForTextMessage } from './helpers/wait-message';
 
 export const manageQuotesModule = new Composer<MyContext>();
 
@@ -64,72 +65,27 @@ export const editQuote = async (
   const quotePrompt = 'Enter updated quote:';
   await ctx.reply(quotePrompt);
 
-  const quoteCtx = await conversation
-    .waitFor(['message', 'callback_query'])
-    .and(
-      (ctx) => {
-        if (ctx.message?.text?.startsWith('/') || ctx.callbackQuery) {
-          return false;
-        }
-        return ctx.has('message:text');
-      },
-      {
-        otherwise: async (ctx) => {
-          if (ctx.message?.text?.startsWith('/')) {
-            await conversation.halt({ next: true });
-          }
-          if (ctx.callbackQuery) {
-            await ctx.reply('Current operation cancelled.');
-            await conversation.halt({ next: true });
-          }
-          await ctx.reply(quotePrompt);
-        },
-      },
-    );
-
+  const quoteCtx = await waitForTextMessage(conversation, quotePrompt);
   const sourcePrompt = 'Enter the quote source:';
   await quoteCtx.reply(sourcePrompt);
-  const sourceCtx = await conversation
-    .waitFor(['message', 'callback_query'])
-    .and(
-      (ctx) => {
-        if (ctx.message?.text?.startsWith('/') || ctx.callbackQuery) {
-          return false;
-        }
-        return ctx.has('message:text');
-      },
-      {
-        otherwise: async (ctx) => {
-          if (ctx.message?.text?.startsWith('/')) {
-            await conversation.halt({ next: true });
-          }
-          if (ctx.callbackQuery) {
-            await ctx.reply('Current operation cancelled.');
-            await conversation.halt({ next: true });
-          }
-          await ctx.reply(sourcePrompt);
-        },
-      },
-    );
-
-  const quoteText = quoteCtx.message?.text;
-  const source = sourceCtx.message?.text;
-  if (!quoteText || !source) {
-    throw new Error('Missing chat in conversation');
-  }
+  const sourceCtx = await waitForTextMessage(conversation, sourcePrompt);
   const quoteId = await conversation.external(
     (ctx) => ctx.session.quotes.selectedId,
   );
   await conversation.external(async () => {
     await db
       .updateTable('quotes')
-      .set(withUpdatedAt({ quoteText, source }))
+      .set(
+        withUpdatedAt({
+          quoteText: quoteCtx.message.text,
+          source: sourceCtx.message.text,
+        }),
+      )
       .where('id', '=', quoteId)
       .execute();
   });
 
   await ctx.reply("I've updated your quote!");
-
   await conversation.external((ctx) => {
     ctx.session.activeConversation = null;
   });

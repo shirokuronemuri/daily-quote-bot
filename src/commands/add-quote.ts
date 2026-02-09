@@ -2,6 +2,7 @@ import { Composer } from 'grammy';
 import { MyContext } from '../types';
 import { getDb } from '../database/database';
 import { ConversationContext, MyConversation } from '../types';
+import { waitForTextMessage } from './helpers/wait-message';
 
 export const addQuoteModule = new Composer<MyContext>();
 
@@ -15,60 +16,12 @@ export const addQuote = async (
   const db = getDb();
   const quotePrompt = 'Enter new quote:';
   await ctx.reply(quotePrompt);
-  const quoteCtx = await conversation
-    .waitFor(['message', 'callback_query'])
-    .and(
-      (ctx) => {
-        if (ctx.message?.text?.startsWith('/') || ctx.callbackQuery) {
-          return false;
-        }
-        return ctx.has('message:text');
-      },
-      {
-        otherwise: async (ctx) => {
-          if (ctx.message?.text?.startsWith('/')) {
-            await conversation.halt({ next: true });
-          }
-          if (ctx.callbackQuery) {
-            await ctx.reply('Current operation cancelled.');
-            await conversation.halt({ next: true });
-          }
-          await ctx.reply(quotePrompt);
-        },
-      },
-    );
-
+  const quoteCtx = await waitForTextMessage(conversation, quotePrompt);
   const sourcePrompt = 'Enter the quote source:';
   await quoteCtx.reply(sourcePrompt);
-  const sourceCtx = await conversation
-    .waitFor(['message', 'callback_query'])
-    .and(
-      (ctx) => {
-        if (ctx.message?.text?.startsWith('/') || ctx.callbackQuery) {
-          return false;
-        }
-        return ctx.has('message:text');
-      },
-      {
-        otherwise: async (ctx) => {
-          if (ctx.message?.text?.startsWith('/')) {
-            await conversation.halt({ next: true });
-          }
-          if (ctx.callbackQuery) {
-            await ctx.reply('Current operation cancelled.');
-            await conversation.halt({ next: true });
-          }
-          await ctx.reply(sourcePrompt);
-        },
-      },
-    );
+  const sourceCtx = await waitForTextMessage(conversation, sourcePrompt);
 
-  const chatId = sourceCtx.chat?.id;
-  const quoteText = quoteCtx.message?.text;
-  const source = sourceCtx.message?.text;
-  if (!chatId || !quoteText || !source) {
-    throw new Error('Missing chat in conversation');
-  }
+  const chatId = sourceCtx.chat.id;
   await conversation.external(async () => {
     await db
       .insertInto('chats')
@@ -80,8 +33,8 @@ export const addQuote = async (
     await db
       .insertInto('quotes')
       .values({
-        quoteText,
-        source,
+        quoteText: quoteCtx.message.text,
+        source: sourceCtx.message.text,
         chatId,
       })
       .execute();

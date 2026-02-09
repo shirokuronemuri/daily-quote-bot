@@ -6,6 +6,8 @@ import { Composer, InlineKeyboard } from 'grammy';
 import tzlookup from 'tz-lookup';
 import { DateTime } from 'luxon';
 import { withUpdatedAt } from '../database/helpers/with-updated-at';
+import { waitForTextMessage } from './helpers/wait-message';
+import { resetMenu } from './helpers/reset-menu';
 
 export const settingsModule = new Composer<MyContext>();
 
@@ -100,17 +102,7 @@ export const timezoneConversation = async (
         otherwise: async (ctx) => {
           if (ctx.message?.text?.startsWith('/') || ctx.callbackQuery) {
             await conversation.external(async (ctx) => {
-              try {
-                await ctx.api.editMessageReplyMarkup(
-                  chatId,
-                  settingsMenuMsg.message_id,
-                  {
-                    reply_markup: undefined,
-                  },
-                );
-              } catch {
-                // continue regardless
-              }
+              await resetMenu(ctx, chatId, settingsMenuMsg.message_id);
             });
             if (ctx.callbackQuery) {
               await ctx.reply('Current operation cancelled.');
@@ -125,13 +117,7 @@ export const timezoneConversation = async (
     );
 
   await conversation.external(async (ctx) => {
-    try {
-      await ctx.api.editMessageReplyMarkup(chatId, settingsMenuMsg.message_id, {
-        reply_markup: undefined,
-      });
-    } catch {
-      // continue regardless
-    }
+    await resetMenu(ctx, chatId, settingsMenuMsg.message_id);
   });
   if (filteredCtx.has('message:location')) {
     const { latitude, longitude } = filteredCtx.message.location;
@@ -147,36 +133,30 @@ export const timezoneConversation = async (
       },
     );
     const callback = await conversation
-      .waitFor(['message', 'callback_query'])
-      .and(
-        (ctx) =>
-          ['tz_save', 'tz_retry'].includes(ctx.callbackQuery?.data ?? ''),
-        {
-          otherwise: async (ctx) => {
-            if (ctx.message?.text?.startsWith('/')) {
-              await conversation.halt({ next: true });
-            }
-            if (ctx.callbackQuery) {
-              await ctx.reply('Current operation cancelled.');
+      .waitFor('callback_query', {
+        otherwise: async (ctx) => {
+          if (ctx.has('message')) {
+            if (ctx.message.text?.startsWith('/')) {
               await conversation.halt({ next: true });
             }
             await ctx.reply(
               'Please confirm your timezone choice or send /cancel.',
             );
+          }
+        },
+      })
+      .and(
+        (ctx) => ['tz_save', 'tz_retry'].includes(ctx.callbackQuery.data ?? ''),
+        {
+          otherwise: async (ctx) => {
+            await ctx.reply('Current operation cancelled.');
+            await conversation.halt({ next: true });
           },
         },
       );
 
     await conversation.external(async (ctx) => {
-      try {
-        await ctx.api.editMessageReplyMarkup(
-          chatId,
-          confirmMenuCtx.message_id,
-          { reply_markup: undefined },
-        );
-      } catch {
-        // continue regardless
-      }
+      await resetMenu(ctx, chatId, confirmMenuCtx.message_id);
     });
     if (callback.callbackQuery?.data === 'tz_save') {
       await conversation.external(async () => {
@@ -197,32 +177,11 @@ export const timezoneConversation = async (
       'Type the name of your timezone city or its part to apply search: (example: <code>Kyiv</code>; <code>tokyo</code>; <code>new_york</code>; minimum 3 characters long)',
       { parse_mode: 'HTML' },
     );
-    const searchTermCtx = await conversation
-      .waitFor(['message', 'callback_query'])
-      .and(
-        (ctx) => {
-          if (ctx.message?.text?.startsWith('/') || ctx.callbackQuery) {
-            return false;
-          }
-          return ctx.has('message:text');
-        },
-        {
-          otherwise: async (ctx) => {
-            if (ctx.message?.text?.startsWith('/')) {
-              await conversation.halt({ next: true });
-            }
-            if (ctx.callbackQuery) {
-              await ctx.reply('Current operation cancelled.');
-              await conversation.halt({ next: true });
-            }
-            await ctx.reply(
-              'Please confirm your timezone choice or send /cancel.',
-            );
-          },
-        },
-      );
-    const searchTerm = searchTermCtx.message?.text;
-    if (!searchTerm) throw new Error('Failed to filter settings callback');
+    const searchTermCtx = await waitForTextMessage(
+      conversation,
+      'Please search for your timezone city or send /cancel to abort operation.',
+    );
+    const searchTerm = searchTermCtx.message.text;
     if (searchTerm.length < 3) {
       await ctx.reply(
         'Search term should be at least 3 characters long, please try again!',
@@ -271,51 +230,37 @@ export const timezoneConversation = async (
       );
 
       const callback = await conversation
-        .waitFor(['message', 'callback_query'])
-        .and(
-          (ctx) =>
-            ctx.callbackQuery?.data === 'tz_manual' ||
-            ctx.callbackQuery?.data?.startsWith('tz_res:')
-              ? true
-              : false,
-          {
-            otherwise: async (ctx) => {
-              if (ctx.message?.text?.startsWith('/') || ctx.callbackQuery) {
-                await conversation.external(async (ctx) => {
-                  try {
-                    await ctx.api.editMessageReplyMarkup(
-                      chatId,
-                      searchResultsMsg.message_id,
-                      {
-                        reply_markup: undefined,
-                      },
-                    );
-                  } catch {
-                    // continue regardless
-                  }
-                });
-                if (ctx.callbackQuery) {
-                  await ctx.reply('Current operation cancelled.');
-                }
+        .waitFor('callback_query', {
+          otherwise: async (ctx) => {
+            if (ctx.has('message')) {
+              if (ctx.message.text?.startsWith('/')) {
                 await conversation.halt({ next: true });
               }
               await ctx.reply(
                 'Please confirm your timezone choice or send /cancel.',
               );
+            }
+          },
+        })
+        .and(
+          (ctx) =>
+            ctx.callbackQuery.data === 'tz_manual' ||
+            ctx.callbackQuery.data?.startsWith('tz_res:')
+              ? true
+              : false,
+          {
+            otherwise: async (ctx) => {
+              await conversation.external(async (ctx) => {
+                await resetMenu(ctx, chatId, searchResultsMsg.message_id);
+              });
+              await ctx.reply('Current operation cancelled.');
+              await conversation.halt({ next: true });
             },
           },
         );
 
       await conversation.external(async (ctx) => {
-        try {
-          await ctx.api.editMessageReplyMarkup(
-            chatId,
-            searchResultsMsg.message_id,
-            { reply_markup: undefined },
-          );
-        } catch {
-          // continue regardless
-        }
+        await resetMenu(ctx, chatId, searchResultsMsg.message_id);
       });
       if (callback.callbackQuery?.data === 'tz_manual') {
         await conversation.rewind(manualSearchCheckpoint);

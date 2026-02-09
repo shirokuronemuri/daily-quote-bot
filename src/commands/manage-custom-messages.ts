@@ -4,6 +4,7 @@ import { getDb } from '../database/database';
 import { MyContext } from '../types';
 import { ConversationContext, MyConversation } from '../types';
 import { withUpdatedAt } from '../database/helpers/with-updated-at';
+import { waitForTextMessage } from './helpers/wait-message';
 
 export const manageCustomMessagesModule = new Composer<MyContext>();
 
@@ -62,46 +63,19 @@ export const editCustomMessage = async (
   const db = getDb();
   const prompt = 'Enter updated custom message:';
   await ctx.reply(prompt);
-  const customMessageCtx = await conversation
-    .waitFor(['message', 'callback_query'])
-    .and(
-      (ctx) => {
-        if (ctx.message?.text?.startsWith('/') || ctx.callbackQuery) {
-          return false;
-        }
-        return ctx.has('message:text');
-      },
-      {
-        otherwise: async (ctx) => {
-          if (ctx.message?.text?.startsWith('/')) {
-            await conversation.halt({ next: true });
-          }
-          if (ctx.callbackQuery) {
-            await ctx.reply('Current operation cancelled.');
-            await conversation.halt({ next: true });
-          }
-          await ctx.reply(prompt);
-        },
-      },
-    );
-
-  const text = customMessageCtx.message?.text;
-  if (!text) {
-    throw new Error('Chat object missing in conversation');
-  }
+  const customMessageCtx = await waitForTextMessage(conversation, prompt);
   const customMessageId = await conversation.external(
     (ctx) => ctx.session.customMessages.selectedId,
   );
   await conversation.external(async () => {
     await db
       .updateTable('customMessages')
-      .set(withUpdatedAt({ text }))
+      .set(withUpdatedAt({ text: customMessageCtx.message.text }))
       .where('id', '=', customMessageId)
       .execute();
   });
 
   await ctx.reply("I've updated your custom message!");
-
   await conversation.external((ctx) => {
     ctx.session.activeConversation = null;
   });
