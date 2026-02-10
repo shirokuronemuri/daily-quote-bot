@@ -8,6 +8,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: debug ssh
+        run: |
+          curl -s https://api.ipify.org
+          echo ""
+          ping -c 5 ${{ secrets.VPS_HOST }}
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
