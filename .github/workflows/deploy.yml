@@ -11,11 +11,11 @@ jobs:
       - name: debug ssh
         run: |
           set -ex
-          sudo apt install -y mtr dnsutils iputils-ping
+          sudo apt install -y mtr iputils-ping
           echo "Public ip:"
           curl -s https://api.ipify.org
           echo "DNS lookup:"
-          nslookup ${{ secrets.VPS_HOST }}
+          nc -zv ${{ secrets.VPS_HOST }} 22
           echo "ping:"
           ping -c 4 ${{ secrets.VPS_HOST }}
           echo "mtr:"
