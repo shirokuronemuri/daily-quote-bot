@@ -10,9 +10,15 @@ jobs:
     steps:
       - name: debug ssh
         run: |
-          sudo apt install -y mtr
+          set -ex
+          sudo apt install -y mtr dnsutils iputils-ping
+          echo "Public ip:"
           curl -s https://api.ipify.org
-          echo ""
+          echo "DNS lookup:"
+          nslookup ${{ secrets.VPS_HOST }}
+          echo "ping:"
+          ping -c 4 ${{ secrets.VPS_HOST }}
+          echo "mtr:"
           mtr -rw -c 10 ${{ secrets.VPS_HOST }}
       # - name: Deploy via SSH
       #   uses: appleboy/ssh-action@v1
