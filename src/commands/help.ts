@@ -6,7 +6,7 @@ export const helpModule = new Composer<MyContext>();
 helpModule.command('help', async (ctx) => {
   await ctx.reply(`Hi, oniichan! 
 This bot was created to send you good motivating quotes every day \
-to make you feel a little big better in your life. You can also add custom messages that are before the quote.
+to make you feel a little bit better in your life. You can also add custom messages that are displayed before the quote.
 Both quote and message are selected randomly from your list.
 
 Before using the bot for the first time you should check out /settings to set a correct timezone and sending time. \
