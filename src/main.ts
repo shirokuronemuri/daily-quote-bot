@@ -32,6 +32,7 @@ import { randomQuoteModule } from './commands/random-quote';
 import { htmlParseMode } from './util/html-parse-mode';
 import { KyselyAdapter } from './util/kysely-adapter';
 import { getDb } from './database/database';
+import { helpModule } from './commands/help';
 
 const bootstrap = async () => {
   const bot = new Bot<MyContext>(config.botToken);
@@ -39,6 +40,7 @@ const bootstrap = async () => {
 
   await bot.api.setMyCommands([
     { command: 'start', description: 'Start the bot' },
+    { command: 'help', description: 'Command explainer' },
     { command: 'add_quote', description: 'Add new quote' },
     {
       command: 'manage_quotes',
@@ -124,6 +126,7 @@ const bootstrap = async () => {
   bot.use(settingsMenu);
 
   bot.use(startModule);
+  bot.use(helpModule);
   bot.use(addQuoteModule);
   bot.use(manageQuotesModule);
   bot.use(cancelModule);

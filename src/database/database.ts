@@ -1,10 +1,5 @@
 import SQLite from 'better-sqlite3';
-import {
-  CamelCasePlugin,
-  Kysely,
-  ParseJSONResultsPlugin,
-  SqliteDialect,
-} from 'kysely';
+import { CamelCasePlugin, Kysely, SqliteDialect } from 'kysely';
 import { config } from '../config';
 import { Database } from './schema';
 
