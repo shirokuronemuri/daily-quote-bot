@@ -24,7 +24,7 @@ export const getDb = () => {
 
     db = new Kysely<Database>({
       dialect,
-      plugins: [new CamelCasePlugin(), new ParseJSONResultsPlugin()],
+      plugins: [new CamelCasePlugin()],
     });
   }
 

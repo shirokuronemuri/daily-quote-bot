@@ -1,7 +1,7 @@
 import { CronJob } from 'cron';
 import { Bot } from 'grammy';
 import { getDb } from './database/database';
-import { sql } from 'kysely';
+import { ParseJSONResultsPlugin, sql } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/sqlite';
 import { MyContext } from './types';
 import { DateTime } from 'luxon';
@@ -96,6 +96,7 @@ const sendDailyQuote = async (bot: Bot<MyContext>) => {
           .limit(1)
           .as('customMessage'),
     ])
+    .withPlugin(new ParseJSONResultsPlugin())
     .execute();
 
   const defaultMessage = "Good morning, oniichan! Here's your daily quote:";
