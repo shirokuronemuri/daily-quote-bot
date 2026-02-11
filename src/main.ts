@@ -30,6 +30,8 @@ import {
 } from './commands/settings';
 import { randomQuoteModule } from './commands/random-quote';
 import { htmlParseMode } from './util/html-parse-mode';
+import { KyselyAdapter } from './util/kysely-adapter';
+import { getDb } from './database/database';
 
 const bootstrap = async () => {
   const bot = new Bot<MyContext>(config.botToken);
@@ -64,8 +66,12 @@ const bootstrap = async () => {
     },
   ]);
 
+  const db = getDb();
+
   bot.use(
     session({
+      storage: new KyselyAdapter(db),
+      prefix: 'user:',
       initial: () => ({
         quotes: {
           lastMenuMsgId: null,
@@ -94,7 +100,16 @@ const bootstrap = async () => {
     }),
   );
   bot.api.config.use(htmlParseMode);
-  bot.use(conversations());
+  bot.use(
+    conversations({
+      storage: {
+        type: 'key',
+        version: 0,
+        adapter: new KyselyAdapter(db),
+        prefix: 'conversation:',
+      },
+    }),
+  );
   bot.use(createConversation(addQuote));
   bot.use(createConversation(editQuote));
   bot.use(createConversation(addCustomMessage));
