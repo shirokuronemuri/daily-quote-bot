@@ -33,9 +33,12 @@ import { htmlParseMode } from './util/html-parse-mode';
 import { KyselyAdapter } from './util/kysely-adapter';
 import { getDb } from './database/database';
 import { helpModule } from './commands/help';
+import { errorHandler } from './util/error-handler';
 
 const bootstrap = async () => {
   const bot = new Bot<MyContext>(config.botToken);
+  bot.catch(errorHandler);
+
   initDailyQuoteCron(bot);
 
   await bot.api.setMyCommands([
