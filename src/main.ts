@@ -107,6 +107,12 @@ const bootstrap = async () => {
   bot.api.config.use(htmlParseMode);
   bot.use(
     conversations({
+      plugins: [
+        async (ctx, next) => {
+          ctx.api.config.use(htmlParseMode);
+          await next();
+        },
+      ],
       storage: {
         type: 'key',
         version: 0,
