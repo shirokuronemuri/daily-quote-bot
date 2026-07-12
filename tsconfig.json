@@ -13,7 +13,9 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "src/*": ["src/*"]
+      "src/*": [
+        "src/*"
+      ]
     },
     "incremental": true,
     "skipLibCheck": true,
@@ -24,5 +26,9 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
   },
-  "include": ["src/**/*", "*.config.mts", "*.config.ts"]
+  "include": [
+    "src/**/*",
+    "*.config.mts",
+    "*.config.ts"
+  ]
 }
